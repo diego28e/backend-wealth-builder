@@ -20,6 +20,7 @@ export const UserWithPasswordSchema = z.object({
     first_name: z.string(),
     last_name: z.string(),
     profile: z.enum(["Low-Income", "High-Income/High-Expense", "Wealth-Builder"]),
+    default_currency_code: z.string().length(3).default('COP'),
     created_at: z.string().optional(),
     updated_at: z.string().optional()
 })

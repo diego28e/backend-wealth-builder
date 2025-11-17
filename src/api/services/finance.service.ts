@@ -1,11 +1,11 @@
 import { supabase } from '../../config/supabase.js';
-import { TransactionSchema, CategorySchema } from '../models/finance.model.js';
-import type { Transaction, User, Category } from '../models/finance.model.js';
+import { TransactionSchema, CategorySchema, FinancialGoalSchema } from '../models/finance.model.js';
+import type { Transaction, User, Category, FinancialGoal, Currency } from '../models/finance.model.js';
 
 export const getUserById = async (id: string): Promise<User | null> => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, profile, created_at, updated_at')
+    .select('id, email, first_name, last_name, profile, default_currency_code, created_at, updated_at')
     .eq('id', id)
     .single();
 
@@ -80,4 +80,39 @@ export const deleteTransaction = async (id: string): Promise<void> => {
     .eq('id', id);
 
   if (error) throw new Error(`Failed to delete transaction: ${error.message}`);
+};
+
+export const getCurrencies = async (): Promise<Currency[]> => {
+  const { data, error } = await supabase
+    .from('currencies')
+    .select('*')
+    .order('code');
+
+  if (error) throw new Error(`Failed to fetch currencies: ${error.message}`);
+  return data || [];
+};
+
+export const createFinancialGoal = async (goalData: Omit<FinancialGoal, 'id' | 'created_at' | 'updated_at'>): Promise<FinancialGoal> => {
+  const validatedData = FinancialGoalSchema.omit({ id: true, created_at: true, updated_at: true }).parse(goalData);
+  
+  const { data, error } = await supabase
+    .from('financial_goals')
+    .insert(validatedData)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create financial goal: ${error.message}`);
+  return data;
+};
+
+export const getUserFinancialGoals = async (userId: string): Promise<FinancialGoal[]> => {
+  const { data, error } = await supabase
+    .from('financial_goals')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch financial goals: ${error.message}`);
+  return data || [];
 };

@@ -21,9 +21,16 @@ router.get('/health', async (req, res) => {
 // User routes
 router.get('/users/:id', financeController.getUser);
 
+// Currency routes
+router.get('/currencies', financeController.getCurrencies);
+
 // Category routes
 router.post('/categories', financeController.createCategory);
 router.get('/users/:userId/categories', financeController.getUserCategories);
+
+// Financial Goal routes
+router.post('/financial-goals', financeController.createFinancialGoal);
+router.get('/users/:userId/financial-goals', financeController.getUserFinancialGoals);
 
 // Transaction routes
 router.post('/transactions', financeController.createTransaction);

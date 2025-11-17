@@ -22,7 +22,15 @@ CREATE TYPE category_group_type AS ENUM (
     'Savings'
 );
 
--- 3. Users table
+-- 3. Currencies table
+CREATE TABLE currencies (
+    code CHARACTER(3) PRIMARY KEY,
+    name CHARACTER VARYING NOT NULL,
+    symbol CHARACTER VARYING NOT NULL,
+    decimal_digits INTEGER NOT NULL
+);
+
+-- 4. Users table
 CREATE TABLE users (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     email CHARACTER VARYING UNIQUE NOT NULL,
@@ -30,11 +38,13 @@ CREATE TABLE users (
     first_name CHARACTER VARYING NOT NULL,
     last_name CHARACTER VARYING NOT NULL,
     profile user_profile_type NOT NULL,
+    default_currency_code CHARACTER(3) NOT NULL DEFAULT 'COP',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT users_default_currency_code_fkey FOREIGN KEY (default_currency_code) REFERENCES currencies(code)
 );
 
--- 4. Category groups table
+-- 6. Category groups table
 CREATE TABLE category_groups (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     name category_group_type NOT NULL UNIQUE,
@@ -42,7 +52,7 @@ CREATE TABLE category_groups (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 
--- 5. Categories table with hierarchy and grouping
+-- 7. Categories table with hierarchy and grouping
 CREATE TABLE categories (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES users(id),
@@ -56,44 +66,56 @@ CREATE TABLE categories (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. Financial goals table
+-- 8. Financial goals table
 CREATE TABLE financial_goals (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     name CHARACTER VARYING NOT NULL,
     description TEXT,
-    target_amount NUMERIC,
-    current_amount NUMERIC DEFAULT 0,
+    target_amount BIGINT,
+    current_amount BIGINT NOT NULL DEFAULT 0,
     target_date DATE,
     category_id UUID REFERENCES categories(id),
+    currency_code CHARACTER(3) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT financial_goals_currency_code_fkey FOREIGN KEY (currency_code) REFERENCES currencies(code)
 );
 
--- 7. Transactions table
+-- 9. Transactions table
 CREATE TABLE transactions (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     category_id UUID NOT NULL REFERENCES categories(id),
     goal_id UUID REFERENCES financial_goals(id),
     date TIMESTAMP WITH TIME ZONE NOT NULL,
-    amount NUMERIC NOT NULL,
+    amount BIGINT NOT NULL,
     type transaction_type NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     notes TEXT,
+    currency_code CHARACTER(3) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT transactions_currency_code_fkey FOREIGN KEY (currency_code) REFERENCES currencies(code)
 );
 
--- 8. Insert default category groups
+-- 10. Insert supported currencies
+INSERT INTO currencies (code, name, symbol, decimal_digits) VALUES
+('COP', 'Colombian Peso', '$', 0),
+('USD', 'US Dollar', '$', 2),
+('CNY', 'Chinese Yuan', '¥', 2),
+('EUR', 'Euro', '€', 2),
+('JPY', 'Japanese Yen', '¥', 0);
+
+-- 11. Insert default category groups
 INSERT INTO category_groups (name, description, sort_order) VALUES
 ('Income', 'All sources of income', 1),
 ('Needs', 'Essential expenses (50% rule)', 2), 
 ('Wants', 'Discretionary expenses (30% rule)', 3),
 ('Savings', 'Savings and investments (20% rule)', 4);
 
--- 9. Insert system categories with proper grouping
+-- 12. Insert system categories with proper grouping
 INSERT INTO categories (category_group_id, name, description, is_system, sort_order) VALUES
 -- Income categories
 ((SELECT id FROM category_groups WHERE name = 'Income'), 'Salary', 'Regular salary/paycheck', true, 1),
@@ -125,7 +147,7 @@ INSERT INTO categories (category_group_id, name, description, is_system, sort_or
 ((SELECT id FROM category_groups WHERE name = 'Savings'), 'Savings Goals', 'House down payment, car fund, etc', true, 4),
 ((SELECT id FROM category_groups WHERE name = 'Savings'), 'Extra Debt Payment', 'Additional debt payments beyond minimum', true, 5);
 
--- 10. Create indexes for performance
+-- 13. Create indexes for performance
 CREATE INDEX idx_transactions_user_date ON transactions(user_id, date DESC);
 CREATE INDEX idx_transactions_category ON transactions(category_id);
 CREATE INDEX idx_transactions_goal ON transactions(goal_id);

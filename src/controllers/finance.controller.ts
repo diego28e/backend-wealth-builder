@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import * as financeService from '../api/services/finance.service.js';
 import { analyzeFinancials } from '../api/services/llm.service.js';
-import { TransactionSchema, CategorySchema } from '../api/models/finance.model.js';
+import { TransactionSchema, CategorySchema, FinancialGoalSchema } from '../api/models/finance.model.js';
 
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -93,6 +93,39 @@ export const getUserCategories = async (req: Request, res: Response): Promise<vo
     }
     const categories = await financeService.getUserCategories(userId);
     res.json(categories);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' });
+  }
+};
+
+export const getCurrencies = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const currencies = await financeService.getCurrencies();
+    res.json(currencies);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' });
+  }
+};
+
+export const createFinancialGoal = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const goalData = FinancialGoalSchema.omit({ id: true, created_at: true, updated_at: true }).parse(req.body);
+    const goal = await financeService.createFinancialGoal(goalData);
+    res.status(201).json(goal);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });
+  }
+};
+
+export const getUserFinancialGoals = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      res.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+    const goals = await financeService.getUserFinancialGoals(userId);
+    res.json(goals);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' });
   }
