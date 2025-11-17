@@ -13,11 +13,15 @@ export const LoginSchema = z.object({
     password:z.string().min(1, "Password is required")
 })
 
-export const UserWithPasswordSchema = RegisterSchema.extend({
+export const UserWithPasswordSchema = z.object({
     id: z.string().uuid().optional(),
+    email: z.string().email(),
     password_hash: z.string(),
-    created_at:z.string().datetime().optional(),
-    updated_at:z.string().datetime().optional()
+    first_name: z.string(),
+    last_name: z.string(),
+    profile: z.enum(["Low-Income", "High-Income/High-Expense", "Wealth-Builder"]),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional()
 })
 
 export const UserResponseSchema = UserWithPasswordSchema.omit({password_hash:true})
