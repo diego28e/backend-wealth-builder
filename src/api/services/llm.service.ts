@@ -20,34 +20,54 @@ export const analyzeFinancials = async (data: UserFinancials): Promise<string> =
 
 The data is in TOON format where 'amount' is positive for income, negative for expenses.
 
+IMPORTANT: Each transaction includes:
+- 'date': Transaction timestamp - USE THIS to determine time period and calculate monthly averages
+- 'categories.name': The specific category (e.g., "Housing", "Dining Out")
+- 'categories.category_groups.name': The group classification - one of:
+  * "Income" - All income sources
+  * "Needs" - Essential expenses (target: 50% of income)
+  * "Wants" - Discretionary spending (target: 30% of income)
+  * "Savings" - Savings and investments (target: 20% of income)
+
+Use these category groups to calculate the 50/30/20 breakdown accurately.
+
 Your analysis MUST:
 
-1. **Calculate and state exact numbers:**
-   - Total income (sum of all positive amounts)
-   - Total expenses (sum of all negative amounts)
-   - Net savings (income - expenses)
-   - Savings rate as percentage of income
+1. **Identify the time period and calculate monthly averages:**
+   - Determine the date range of transactions (e.g., "Analyzing your finances from Jan 2024 to Mar 2024")
+   - Calculate number of months covered
+   - State MONTHLY averages: "Your average monthly income is X, average monthly expenses are Y"
+   - If data spans less than a full month, note this limitation
 
-2. **Analyze spending by category with percentages:**
+2. **Calculate and state exact numbers:**
+   - Total income for the period
+   - Total expenses for the period
+   - Net savings for the period
+   - Average monthly savings rate as percentage of income
+
+3. **Analyze spending by category with percentages:**
    - Calculate what % of income goes to each major expense category
    - Identify the top 3 expense categories by amount and percentage
-   - Compare to 50/30/20 rule (50% Needs, 30% Wants, 20% Savings)
+   - Compare to 50/30/20 rule using category groups (50% Needs, 30% Wants, 20% Savings)
+   - State actual breakdown: "Your spending is X% Needs, Y% Wants, Z% Savings"
 
-3. **Acknowledge what you observe:**
-   - If no financial goals exist, explicitly mention: "I noticed you don't have any financial goals set yet..."
+4. **Acknowledge what you observe:**
+   - If no financial goals exist, explicitly mention: "I noticed you don't have any financial goals set yet. Setting specific goals helps track progress."
    - If goals exist, calculate if current savings rate will achieve them and by when
-   - If spending in a category is reasonable, say so with numbers
-   - If there's little room to cut expenses, acknowledge it and suggest income increase
+   - If spending in a category is reasonable, say so with numbers: "Your housing costs are X% of income (industry standard is 30%), which is reasonable"
+   - If there's little room to cut expenses, acknowledge it: "Your expenses are mostly essential. Focus on increasing income."
 
-4. **Make data-driven predictions:**
-   - If user has a goal, calculate: "At your current savings rate of X per month, you'll reach your goal of Y in Z months"
-   - If goal is unrealistic: "Warning: Your current spending pattern won't allow you to reach this goal. You need to save X more per month"
-   - Project future savings based on current patterns
+5. **Make data-driven predictions and projections:**
+   - If user has a goal: "At your current monthly savings rate of $X, you'll reach your goal of $Y in Z months (by [date])"
+   - If goal is unrealistic: "Warning: Your current spending pattern won't allow you to reach this goal. You need to save $X more per month."
+   - Project 6-month and 12-month savings based on current patterns
+   - Identify spending trends if data shows patterns over time
 
-5. **Give specific, actionable advice based on THEIR numbers:**
+6. **Give specific, actionable advice based on THEIR numbers:**
    - "Your housing costs are X% of income (industry standard is 30%), so there's [little/significant] room for optimization"
    - "You're spending X% on [category], which is Y% above/below recommended levels"
    - Focus on the biggest opportunities based on their actual data
+   - Prioritize recommendations by potential impact
 
 Format your response with clear sections and specific numbers. Be direct and analytical, not generic.`;
 

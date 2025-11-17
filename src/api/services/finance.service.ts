@@ -61,6 +61,25 @@ export const getUserTransactions = async (userId: string): Promise<Transaction[]
   return data || [];
 };
 
+export const getUserTransactionsEnriched = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      categories (
+        name,
+        category_groups (
+          name
+        )
+      )
+    `)
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch enriched transactions: ${error.message}`);
+  return data || [];
+};
+
 export const updateTransaction = async (id: string, updates: Partial<Transaction>): Promise<Transaction> => {
   const { data, error } = await supabase
     .from('transactions')

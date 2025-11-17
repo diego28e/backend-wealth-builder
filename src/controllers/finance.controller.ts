@@ -150,14 +150,18 @@ export const getFinancialAnalysis = async (req: Request, res: Response): Promise
       return;
     }
     
-    console.log('🔍 Fetching user transactions...');
-    const transactions = await financeService.getUserTransactions(userId);
+    console.log('🔍 Fetching enriched user transactions...');
+    const transactions = await financeService.getUserTransactionsEnriched(userId);
     console.log('📈 Found', transactions.length, 'transactions');
+    
+    console.log('🔍 Fetching user financial goals...');
+    const goals = await financeService.getUserFinancialGoals(userId);
+    console.log('🎯 Found', goals.length, 'financial goals');
     
     console.log('🤖 Calling AI analysis service...');
     const analysis = await analyzeFinancials({
       profile: user.profile,
-      goals: [],
+      goals: goals.map(g => g.name),
       transactions
     });
     
