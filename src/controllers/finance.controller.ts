@@ -133,26 +133,41 @@ export const getUserFinancialGoals = async (req: Request, res: Response): Promis
 
 export const getFinancialAnalysis = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('📊 Starting financial analysis request for user:', req.params.userId);
+    
     const { userId } = req.params;
     if (!userId) {
+      console.error('❌ Missing userId parameter');
       res.status(400).json({ error: 'User ID is required' });
       return;
     }
+    
+    console.log('🔍 Fetching user data...');
     const user = await financeService.getUserById(userId);
     if (!user) {
+      console.error('❌ User not found:', userId);
       res.status(404).json({ error: 'User not found' });
       return;
     }
     
+    console.log('🔍 Fetching user transactions...');
     const transactions = await financeService.getUserTransactions(userId);
+    console.log('📈 Found', transactions.length, 'transactions');
+    
+    console.log('🤖 Calling AI analysis service...');
     const analysis = await analyzeFinancials({
       profile: user.profile,
       goals: [],
       transactions
     });
     
+    console.log('✅ Analysis completed successfully');
     res.json({ analysis });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Analysis failed' });
+    console.error('❌ Financial analysis failed:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Analysis failed',
+      details: error instanceof Error ? error.stack : undefined
+    });
   }
 };
