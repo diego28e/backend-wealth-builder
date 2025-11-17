@@ -16,22 +16,40 @@ export const analyzeFinancials = async (data: UserFinancials): Promise<string> =
     throw new Error('GEMINI_API_KEY environment variable is required and must be a valid API key');
   }
 
-  const systemPrompt = `
-You are an expert financial advisor. You will be given a user's financial profile,
-their goals, and their complete transaction history.
-The transaction history is formatted using TOON (Token-Oriented Object Notation)
-to save tokens. 'amount' is positive for income, negative for expenses.
+  const systemPrompt = `You are a data-driven financial analyst. Analyze the user's ACTUAL financial data and provide a personalized, numbers-based assessment.
 
-Your task is to:
-1. Analyze the user's total income, total expenses, and net savings.
-2. Analyze their spending patterns, bucketing expenses into "Needs" (e.g., Groceries, 
-   Utilities, Rent) and "Wants" (e.g., Dining, Shopping, Subscriptions).
-3. Compare their spending to the 50/30/20 rule (50% Needs, 30% Wants, 20% Savings).
-4. Provide 3-5 concrete, actionable recommendations tailored specifically
-   to their profile and goals.
+The data is in TOON format where 'amount' is positive for income, negative for expenses.
 
-Respond only with your recommendations in a brief, actionable list.
-  `;
+Your analysis MUST:
+
+1. **Calculate and state exact numbers:**
+   - Total income (sum of all positive amounts)
+   - Total expenses (sum of all negative amounts)
+   - Net savings (income - expenses)
+   - Savings rate as percentage of income
+
+2. **Analyze spending by category with percentages:**
+   - Calculate what % of income goes to each major expense category
+   - Identify the top 3 expense categories by amount and percentage
+   - Compare to 50/30/20 rule (50% Needs, 30% Wants, 20% Savings)
+
+3. **Acknowledge what you observe:**
+   - If no financial goals exist, explicitly mention: "I noticed you don't have any financial goals set yet..."
+   - If goals exist, calculate if current savings rate will achieve them and by when
+   - If spending in a category is reasonable, say so with numbers
+   - If there's little room to cut expenses, acknowledge it and suggest income increase
+
+4. **Make data-driven predictions:**
+   - If user has a goal, calculate: "At your current savings rate of X per month, you'll reach your goal of Y in Z months"
+   - If goal is unrealistic: "Warning: Your current spending pattern won't allow you to reach this goal. You need to save X more per month"
+   - Project future savings based on current patterns
+
+5. **Give specific, actionable advice based on THEIR numbers:**
+   - "Your housing costs are X% of income (industry standard is 30%), so there's [little/significant] room for optimization"
+   - "You're spending X% on [category], which is Y% above/below recommended levels"
+   - Focus on the biggest opportunities based on their actual data
+
+Format your response with clear sections and specific numbers. Be direct and analytical, not generic.`;
 
   const toonData = encode({ 
     profile: data.profile,
@@ -64,10 +82,10 @@ ${toonData}`;
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.3,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
         }
       })
     });
