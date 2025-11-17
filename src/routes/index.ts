@@ -19,7 +19,6 @@ router.get('/health', async (req, res) => {
  router.post('/login', authController.login);
 
 // User routes
-router.post('/users', financeController.createUser);
 router.get('/users/:id', financeController.getUser);
 
 // Category routes

@@ -1,19 +1,6 @@
 import { supabase } from '../../config/supabase.js';
-import { TransactionSchema, UserSchema, CategorySchema } from '../models/finance.model.js';
+import { TransactionSchema, CategorySchema } from '../models/finance.model.js';
 import type { Transaction, User, Category } from '../models/finance.model.js';
-
-export const createUser = async (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> => {
-  const validatedData = UserSchema.omit({ id: true, created_at: true, updated_at: true }).parse(userData);
-  
-  const { data, error } = await supabase
-    .from('users')
-    .insert(validatedData)
-    .select()
-    .single();
-
-  if (error) throw new Error(`Failed to create user: ${error.message}`);
-  return data;
-};
 
 export const getUserById = async (id: string): Promise<User | null> => {
   const { data, error } = await supabase

@@ -1,17 +1,7 @@
 import type { Request, Response } from 'express';
 import * as financeService from '../api/services/finance.service.js';
 import { analyzeFinancials } from '../api/services/llm.service.js';
-import { TransactionSchema, UserSchema, CategorySchema } from '../api/models/finance.model.js';
-
-export const createUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userData = UserSchema.omit({ id: true, created_at: true, updated_at: true }).parse(req.body);
-    const user = await financeService.createUser(userData);
-    res.status(201).json(user);
-  } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });
-  }
-};
+import { TransactionSchema, CategorySchema } from '../api/models/finance.model.js';
 
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
