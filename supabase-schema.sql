@@ -49,6 +49,20 @@ CREATE TABLE public.financial_goals (
   CONSTRAINT financial_goals_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id),
   CONSTRAINT financial_goals_currency_code_fkey FOREIGN KEY (currency_code) REFERENCES public.currencies(code)
 );
+CREATE TABLE public.transaction_items (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  transaction_id uuid NOT NULL,
+  item_name character varying NOT NULL,
+  quantity numeric NOT NULL DEFAULT 1,
+  unit_price bigint NOT NULL,
+  total_amount bigint NOT NULL,
+  category_id uuid,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT transaction_items_pkey PRIMARY KEY (id),
+  CONSTRAINT transaction_items_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id),
+  CONSTRAINT transaction_items_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
+);
 CREATE TABLE public.transactions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
@@ -62,6 +76,10 @@ CREATE TABLE public.transactions (
   notes text,
   amount bigint NOT NULL,
   currency_code character NOT NULL,
+  receipt_image_url text,
+  receipt_processed_at timestamp with time zone,
+  merchant_name character varying,
+  has_line_items boolean DEFAULT false,
   CONSTRAINT transactions_pkey PRIMARY KEY (id),
   CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id),

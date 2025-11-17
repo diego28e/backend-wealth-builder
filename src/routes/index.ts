@@ -1,7 +1,8 @@
 import { Router } from "express";
 import * as financeController from "../controllers/finance.controller.js";
 import { testConnection } from "../config/supabase.js";
- import * as authController from "../controllers/auth.controller.js";
+import * as authController from "../controllers/auth.controller.js";
+import * as receiptController from "../controllers/receipt.controller.js";
 
 const router = Router();
 
@@ -40,5 +41,8 @@ router.delete('/transactions/:id', financeController.deleteTransaction);
 
 // Analysis route
 router.get('/users/:userId/analysis', financeController.getFinancialAnalysis);
+
+// Receipt routes
+router.post('/receipts/upload', receiptController.uploadReceipt);
 
 export default router;

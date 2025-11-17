@@ -11,6 +11,10 @@ export const TransactionSchema = z.object({
   description: z.string().min(1),
   notes: z.string().optional(),
   currency_code: z.string().length(3),
+  receipt_image_url: z.string().optional(),
+  receipt_processed_at: z.string().datetime().optional(),
+  merchant_name: z.string().optional(),
+  has_line_items: z.boolean().optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
@@ -75,6 +79,20 @@ export type CategoryGroup = z.infer<typeof CategoryGroupSchema>;
 export type FinancialGoal = z.infer<typeof FinancialGoalSchema>;
 export type Currency = z.infer<typeof CurrencySchema>;
 export type FinancialProfile = User['profile'];
+
+export const TransactionItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  transaction_id: z.string().uuid(),
+  item_name: z.string().min(1),
+  quantity: z.number().positive(),
+  unit_price: z.number().int(),
+  total_amount: z.number().int(),
+  category_id: z.string().uuid().optional(),
+  sort_order: z.number().int().default(0),
+  created_at: z.string().datetime().optional()
+});
+
+export type TransactionItem = z.infer<typeof TransactionItemSchema>;
 
 export interface UserFinancials {
   profile: FinancialProfile;
