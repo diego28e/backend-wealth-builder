@@ -1,109 +1,70 @@
--- 1. Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- 2. Create custom ENUM types
-CREATE TYPE user_profile_type AS ENUM (
-    'Low-Income',
-    'High-Income/High-Expense',
-    'Wealth-Builder'
+CREATE TABLE public.categories (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  name character varying NOT NULL,
+  parent_id uuid,
+  category_group_id uuid,
+  description text,
+  is_active boolean DEFAULT true,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  is_system boolean DEFAULT (user_id IS NULL),
+  CONSTRAINT categories_pkey PRIMARY KEY (id),
+  CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id),
+  CONSTRAINT categories_category_group_id_fkey FOREIGN KEY (category_group_id) REFERENCES public.category_groups(id)
 );
-
-CREATE TYPE transaction_type AS ENUM (
-    'Income',
-    'Expense'
+CREATE TABLE public.category_groups (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name USER-DEFINED NOT NULL UNIQUE,
+  description text,
+  sort_order integer NOT NULL DEFAULT 0,
+  CONSTRAINT category_groups_pkey PRIMARY KEY (id)
 );
-
--- 3. Create 'users' table
-CREATE TABLE users (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    profile user_profile_type NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.financial_goals (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  target_amount numeric,
+  current_amount numeric DEFAULT 0,
+  target_date date,
+  category_id uuid,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT financial_goals_pkey PRIMARY KEY (id),
+  CONSTRAINT financial_goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT financial_goals_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
-
--- 4. Create 'goals' and 'user_goals' tables (many-to-many)
-CREATE TABLE goals (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT
+CREATE TABLE public.transactions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  category_id uuid NOT NULL,
+  date timestamp with time zone NOT NULL,
+  amount numeric NOT NULL,
+  type USER-DEFINED NOT NULL,
+  description text NOT NULL DEFAULT ''::text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  goal_id uuid,
+  notes text,
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id),
+  CONSTRAINT transactions_goal_id_fkey FOREIGN KEY (goal_id) REFERENCES public.financial_goals(id)
 );
-
-CREATE TABLE user_goals (
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    goal_id UUID NOT NULL REFERENCES goals(id) ON DELETE RESTRICT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    PRIMARY KEY (user_id, goal_id)
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email character varying NOT NULL UNIQUE,
+  profile USER-DEFINED NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  password_hash character varying NOT NULL,
+  first_name character varying NOT NULL,
+  last_name character varying NOT NULL,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
 );
-
--- 5. Create 'categories' table
-CREATE TABLE categories (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    -- A specific user's categories must have unique names
-    CONSTRAINT unique_user_category UNIQUE (user_id, name)
-);
-
--- 6. Create 'transactions' table
-CREATE TABLE transactions (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    category_id UUID NOT NULL REFERENCES categories(id),
-    date TIMESTAMP WITH TIME ZONE NOT NULL,
-    amount DECIMAL(12, 2) NOT NULL,
-    type transaction_type NOT NULL,
-    description TEXT DEFAULT '' NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 7. Create optimized indexes
--- NOTE: Indexes on FKs (user_id, category_id) are created automatically.
-CREATE INDEX idx_transactions_user_date ON transactions(user_id, date DESC);
-CREATE INDEX idx_transactions_type ON transactions(type);
--- Create partial unique index for system categories (name is unique ONLY when user_id IS NULL)
-CREATE UNIQUE INDEX idx_unique_system_category ON categories(name) WHERE (user_id IS NULL);
-
--- 8. Create 'updated_at' trigger function (your original was perfect)
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- 9. Create triggers for 'updated_at'
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_transactions_updated_at
-    BEFORE UPDATE ON transactions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- 10. Enable Row Level Security (RLS)
---ALTER TABLE users ENABLE ROW LEVEL SECURITY;
---ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
---ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
---ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
---ALTER TABLE user_goals ENABLE ROW LEVEL SECURITY;
-
--- 11. Create secure RLS policies (adjust auth.current_user_id() as needed)
--- (See RLS section above for detailed policy examples)
--- Example for transactions:
---CREATE POLICY "Users can manage their own transactions"
-    --ON transactions FOR ALL
-    --USING (user_id = (SELECT (current_setting('request.jwt.claim.sub', true))::uuid))
-    --WITH CHECK (user_id = (SELECT (current_setting('request.jwt.claim.sub', true))::uuid));
-    
--- Example for categories:
--- Users can see their own categories AND system categories
---CREATE POLICY "Users can select their own or system categories"
-    --ON categories FOR SELECT
-    --USING (user_id = (SELECT (current_setting('request.jwt.claim.sub', true))::uuid) OR user_id IS NULL);
--- (Add policies for INSERT, UPDATE, DELETE as needed)
