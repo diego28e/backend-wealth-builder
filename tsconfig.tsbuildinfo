@@ -1,1 +1,1 @@
-{"root":["./src/app.ts","./src/server.ts","./src/routes/index.ts"],"version":"5.9.3"}
+{"root":["./src/app.ts","./src/server.ts","./src/api/models/finance.model.ts","./src/api/services/finance.service.ts","./src/api/services/llm.service.ts","./src/config/supabase.ts","./src/controllers/demo.controller.ts","./src/controllers/finance.controller.ts","./src/routes/index.ts"],"version":"5.9.3"}
