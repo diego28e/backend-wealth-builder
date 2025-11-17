@@ -22,7 +22,10 @@ app.use((error: any, req: Request, res: Response, next: any) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  console.error('Stack:', reason instanceof Error ? reason.stack : 'No stack trace');
+  process.exit(1);
 });
 
 export default app;

@@ -1,5 +1,5 @@
 import { supabase } from '../../config/supabase.js';
-import { RegisterSchema, LoginSchema, UserWithPasswordSchema, UserResponseSchema } from '../models/auth.model.js';
+import { RegisterSchema, LoginSchema, UserWithPasswordSchema } from '../models/auth.model.js';
 import { hashPassword, verifyPassword } from '../../utils/auth.js';
 import type { RegisterInput, LoginInput, UserWithPassword, UserResponse } from '../models/auth.model.js';
 
@@ -36,8 +36,8 @@ export const registerUser = async (userData: RegisterInput): Promise<UserRespons
   if (error) throw new Error(`Failed to create user: ${error.message}`);
   
   // Return user without password_hash
-  const userResponse = UserResponseSchema.parse(data);
-  return userResponse;
+  const { password_hash: _, ...userResponse } = data;
+  return userResponse as UserResponse;
 };
 
 export const getUserByEmail = async (email: string): Promise<UserWithPassword | null> => {

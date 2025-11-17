@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as financeController from "../controllers/finance.controller.js";
 import { testConnection } from "../config/supabase.js";
-import * as authController from "../controllers/auth.controller.js";
+ import * as authController from "../controllers/auth.controller.js";
 
 const router = Router();
 
@@ -15,8 +15,8 @@ router.get('/health', async (req, res) => {
   });
 });
 
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+ router.post('/register', authController.register);
+ router.post('/login', authController.login);
 
 // User routes
 router.post('/users', financeController.createUser);

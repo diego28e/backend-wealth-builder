@@ -5,6 +5,6 @@ export const hashPassword = async (password: string)=>{
     return hashedPassword;
 }
 
-export const verifyPassword = async(password:string,hashedPassword:string)=>{
+export const verifyPassword = async(hashedPassword:string,password:string)=>{
     return await argon2.verify(hashedPassword,password)
 }

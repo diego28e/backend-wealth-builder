@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import * as authService from '../api/services/auth.service.js';
 import { generateToken } from '../utils/jwt.js';
-import { RegisterSchema, LoginSchema, UserResponseSchema } from '../api/models/auth.model.js';
+import { RegisterSchema, LoginSchema } from '../api/models/auth.model.js';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -12,7 +12,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const token = await generateToken({ userId: user.id!, email: user.email });
     
     res.status(201).json({ 
-      user: UserResponseSchema.parse(user),
+      user,
       token 
     });
   } catch (error) {
@@ -32,8 +32,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Generate JWT token
     const token = await generateToken({ userId: user.id!, email: user.email });
     
-    // Return user without password_hash
-    const userResponse = UserResponseSchema.parse(user);
+    // Return user without password_hash (already parsed by authService)
+    const { password_hash, ...userResponse } = user;
     
     res.json({ 
       user: userResponse,
