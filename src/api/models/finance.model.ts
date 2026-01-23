@@ -99,3 +99,7 @@ export interface UserFinancials {
   goals: string[];
   transactions: Transaction[];
 }
+
+export interface TransactionWithItems extends Transaction {
+  transacion_items: TransactionItem[];
+}

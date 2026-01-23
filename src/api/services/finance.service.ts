@@ -15,7 +15,7 @@ export const getUserById = async (id: string): Promise<User | null> => {
 
 export const createCategory = async (categoryData: Omit<Category, 'id'>): Promise<Category> => {
   const validatedData = CategorySchema.omit({ id: true }).parse(categoryData);
-  
+
   const { data, error } = await supabase
     .from('categories')
     .insert(validatedData)
@@ -39,7 +39,7 @@ export const getUserCategories = async (userId: string): Promise<Category[]> => 
 
 export const createTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>): Promise<Transaction> => {
   const validatedData = TransactionSchema.omit({ id: true, created_at: true, updated_at: true }).parse(transactionData);
-  
+
   const { data, error } = await supabase
     .from('transactions')
     .insert(validatedData)
@@ -113,7 +113,7 @@ export const getCurrencies = async (): Promise<Currency[]> => {
 
 export const createFinancialGoal = async (goalData: Omit<FinancialGoal, 'id' | 'created_at' | 'updated_at'>): Promise<FinancialGoal> => {
   const validatedData = FinancialGoalSchema.omit({ id: true, created_at: true, updated_at: true }).parse(goalData);
-  
+
   const { data, error } = await supabase
     .from('financial_goals')
     .insert(validatedData)
@@ -134,4 +134,27 @@ export const getUserFinancialGoals = async (userId: string): Promise<FinancialGo
 
   if (error) throw new Error(`Failed to fetch financial goals: ${error.message}`);
   return data || [];
+};
+
+export const getTransactionWithItems = async (transactionId: string) => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      transaction_items (
+        id,
+        item_name,
+        quantity,
+        unit_price,
+        total_amount,
+        category_id,
+        sort_order,
+        created_at
+      )
+    `)
+    .eq('id', transactionId)
+    .single();
+
+  if (error) throw new Error(`Failed to fetch transaction with items: ${error.message}`);
+  return data;
 };

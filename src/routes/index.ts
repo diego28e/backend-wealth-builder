@@ -9,15 +9,15 @@ const router = Router();
 // Health check and DB test
 router.get('/health', async (req, res) => {
   const dbConnected = await testConnection();
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     database: dbConnected ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
   });
 });
 
- router.post('/register', authController.register);
- router.post('/login', authController.login);
+router.post('/register', authController.register);
+router.post('/login', authController.login);
 
 // User routes
 router.get('/users/:id', financeController.getUser);
@@ -44,5 +44,7 @@ router.get('/users/:userId/analysis', financeController.getFinancialAnalysis);
 
 // Receipt routes
 router.post('/receipts/upload', receiptController.uploadReceipt);
+
+router.get('/transactions/:id', financeController.getTransactionWithItems);
 
 export default router;

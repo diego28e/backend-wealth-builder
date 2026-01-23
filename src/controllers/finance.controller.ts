@@ -134,14 +134,14 @@ export const getUserFinancialGoals = async (req: Request, res: Response): Promis
 export const getFinancialAnalysis = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('📊 Starting financial analysis request for user:', req.params.userId);
-    
+
     const { userId } = req.params;
     if (!userId) {
       console.error('❌ Missing userId parameter');
       res.status(400).json({ error: 'User ID is required' });
       return;
     }
-    
+
     console.log('🔍 Fetching user data...');
     const user = await financeService.getUserById(userId);
     if (!user) {
@@ -149,29 +149,43 @@ export const getFinancialAnalysis = async (req: Request, res: Response): Promise
       res.status(404).json({ error: 'User not found' });
       return;
     }
-    
+
     console.log('🔍 Fetching enriched user transactions...');
     const transactions = await financeService.getUserTransactionsEnriched(userId);
     console.log('📈 Found', transactions.length, 'transactions');
-    
+
     console.log('🔍 Fetching user financial goals...');
     const goals = await financeService.getUserFinancialGoals(userId);
     console.log('🎯 Found', goals.length, 'financial goals');
-    
+
     console.log('🤖 Calling AI analysis service...');
     const analysis = await analyzeFinancials({
       profile: user.profile,
       goals: goals.map(g => g.name),
       transactions
     });
-    
+
     console.log('✅ Analysis completed successfully');
     res.json({ analysis });
   } catch (error) {
     console.error('❌ Financial analysis failed:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error instanceof Error ? error.message : 'Analysis failed',
       details: error instanceof Error ? error.stack : undefined
     });
   }
 };
+
+export const getTransactionWithItems = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ error: 'Transaction ID is required' });
+      return;
+    }
+    const transaction = await financeService.getTransactionWithItems(id);
+    res.json(transaction);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' })
+  }
+}
