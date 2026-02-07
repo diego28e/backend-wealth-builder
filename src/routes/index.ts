@@ -4,8 +4,12 @@ import { testConnection } from "../config/supabase.js";
 import * as authController from "../controllers/auth.controller.js";
 import * as receiptController from "../controllers/receipt.controller.js";
 import { authenticate } from "../utils/auth.js";
+// import docsRouter from './docs.js';  // ← COMMENT THIS OUT
+
 
 const router = Router();
+
+// router.use('/docs', docsRouter);  // ← COMMENT THIS OUT
 
 // Health check and DB test
 router.get('/health', async (req, res) => {

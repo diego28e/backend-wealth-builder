@@ -1,0 +1,747 @@
+openapi: 3.0.3
+info:
+  title: Wealth Tracker API
+  description: A Node.js/TypeScript backend for tracking finances and providing AI-powered financial recommendations
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@wealth-tracker.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.wealth-tracker.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Users
+    description: User management
+  - name: Transactions
+    description: Financial transactions
+  - name: Categories
+    description: Transaction categories
+  - name: Financial Goals
+    description: User financial goals
+  - name: Currencies
+    description: Currency management
+  - name: Analysis
+    description: AI-powered financial analysis
+  - name: Receipts
+    description: Receipt processing
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+      description: JWT token stored in httpOnly cookie
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        profile:
+          type: string
+          enum: [Low-Income, High-Income/High-Expense, Wealth-Builder]
+        default_currency_code:
+          type: string
+          example: COP
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        goal_id:
+          type: string
+          format: uuid
+          nullable: true
+        date:
+          type: string
+          format: date-time
+        amount:
+          type: integer
+          description: Amount in smallest currency unit (cents)
+        type:
+          type: string
+          enum: [Income, Expense]
+        description:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        currency_code:
+          type: string
+          example: COP
+        merchant_name:
+          type: string
+          nullable: true
+        has_line_items:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        is_system:
+          type: boolean
+        sort_order:
+          type: integer
+
+    FinancialGoal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        target_amount:
+          type: integer
+          nullable: true
+        current_amount:
+          type: integer
+        target_date:
+          type: string
+          format: date
+          nullable: true
+        currency_code:
+          type: string
+        is_active:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check API and database connectivity
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  database:
+                    type: string
+                    example: connected
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /register:
+    post:
+      summary: Register new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - first_name
+                - last_name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                profile:
+                  type: string
+                  enum: [Low-Income, High-Income/High-Expense, Wealth-Builder]
+      responses:
+        '201':
+          description: User registered successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: accessToken=abc123; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /login:
+    post:
+      summary: Login user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /refresh-token:
+    post:
+      summary: Refresh access token
+      tags:
+        - Authentication
+      description: Uses refreshToken cookie to generate new accessToken
+      responses:
+        '200':
+          description: Token refreshed
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /logout:
+    post:
+      summary: Logout user
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      tags:
+        - Users
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions:
+    post:
+      summary: Create transaction
+      tags:
+        - Transactions
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - category_id
+                - date
+                - amount
+                - type
+                - description
+                - currency_code
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                category_id:
+                  type: string
+                  format: uuid
+                goal_id:
+                  type: string
+                  format: uuid
+                date:
+                  type: string
+                  format: date-time
+                amount:
+                  type: integer
+                type:
+                  type: string
+                  enum: [Income, Expense]
+                description:
+                  type: string
+                notes:
+                  type: string
+                currency_code:
+                  type: string
+                merchant_name:
+                  type: string
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/transactions:
+    get:
+      summary: Get user transactions
+      tags:
+        - Transactions
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions/{id}:
+    get:
+      summary: Get transaction with items
+      tags:
+        - Transactions
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transaction with items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Transaction'
+                  - type: object
+                    properties:
+                      transaction_items:
+                        type: array
+                        items:
+                          type: object
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transaction not found
+
+    put:
+      summary: Update transaction
+      tags:
+        - Transactions
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                description:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transaction not found
+
+    delete:
+      summary: Delete transaction
+      tags:
+        - Transactions
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Transaction deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transaction not found
+
+  /currencies:
+    get:
+      summary: Get all currencies
+      tags:
+        - Currencies
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of currencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                    name:
+                      type: string
+                    symbol:
+                      type: string
+                    decimal_digits:
+                      type: integer
+
+  /categories:
+    post:
+      summary: Create category
+      tags:
+        - Categories
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
+  /users/{userId}/categories:
+    get:
+      summary: Get user categories
+      tags:
+        - Categories
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /financial-goals:
+    post:
+      summary: Create financial goal
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - name
+                - currency_code
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                description:
+                  type: string
+                target_amount:
+                  type: integer
+                current_amount:
+                  type: integer
+                target_date:
+                  type: string
+                  format: date
+                currency_code:
+                  type: string
+      responses:
+        '201':
+          description: Goal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialGoal'
+
+  /users/{userId}/financial-goals:
+    get:
+      summary: Get user financial goals
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of financial goals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FinancialGoal'
+
+  /users/{userId}/analysis:
+    get:
+      summary: Get AI financial analysis
+      tags:
+        - Analysis
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Financial analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analysis:
+                    type: string
+
+  /receipts/upload:
+    post:
+      summary: Upload receipt
+      tags:
+        - Receipts
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Receipt uploaded
