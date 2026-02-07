@@ -1,6 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
+import type { JWTPayload } from 'jose';
 import dotenv from 'dotenv';
 dotenv.config();
+
+export interface CustomJWTPayload extends JWTPayload {
+  userId: string;
+  email: string;
+}
 
 export async function generateToken(payload: any) {
   const secret = process.env.JWT_SECRET;
@@ -58,7 +64,7 @@ export async function verifyToken(token: string) {
     audience,
     issuer,
   });
-  return payload;
+  return payload as CustomJWTPayload;
 }
 
 export async function verifyRefreshToken(token: string) {
@@ -75,5 +81,5 @@ export async function verifyRefreshToken(token: string) {
     audience,
     issuer,
   })
-  return payload;
+  return payload as CustomJWTPayload;
 }
