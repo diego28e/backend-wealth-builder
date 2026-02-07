@@ -26,7 +26,7 @@ export async function generateToken(payload: any) {
 export async function generateRefreshToken(payload: any) {
   const secret = process.env.JWT_REFRESH_SECRET;
   const audience = process.env.JWT_AUDIENCE;
-  const issuer = process.env.JWT_ISSUES;
+  const issuer = process.env.JWT_ISSUER;
 
   if (!secret || !audience || !issuer) {
     throw new Error('Missing JWT environment variables');

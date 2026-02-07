@@ -10,7 +10,7 @@ const startServer = async () => {
   try {
     // Test database connection
     await testConnection();
-    
+
     app.listen(PORT, () => {
       console.log(`✅ Server is running on port ${PORT}`);
     });
