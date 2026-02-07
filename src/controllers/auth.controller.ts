@@ -45,9 +45,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const refreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
+    
     if (!refreshToken) {
-      res.status(400).json({ error: 'Refresh token is required' });
+      res.status(401).json({ error: 'Refresh token not found' });
       return;
     }
 
@@ -55,14 +56,14 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const newAccessToken = await generateToken({
       userId: payload.userId,
       email: payload.email
-    })
+    });
 
     setAccessTokenCookie(res, newAccessToken);
-    res.json({ message: 'Token refreshed successfully' })
+    res.json({ message: 'Token refreshed successfully' });
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired refresh token' });
   }
-}
+};
 
 export const logout = async (req: Request, res: Response): Promise<void> => {
   clearAuthCookies(res);

@@ -22,10 +22,10 @@ export const setAccessTokenCookie = (res: Response, accessToken: string) => {
     res.cookie('accessToken', accessToken, {
         ...baseOptions,
         maxAge: 2 * 60 * 60 * 1000
-    })
+    });
 };
 
 export const clearAuthCookies = (res: Response) => {
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-}
+};
