@@ -3,6 +3,7 @@ import * as financeController from "../controllers/finance.controller.js";
 import { testConnection } from "../config/supabase.js";
 import * as authController from "../controllers/auth.controller.js";
 import * as receiptController from "../controllers/receipt.controller.js";
+import { authenticate } from "../utils/auth.js";
 
 const router = Router();
 
@@ -22,31 +23,29 @@ router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authController.logout);
 
 // User routes
-router.get('/users/:id', financeController.getUser);
+router.get('/users/:id', authenticate, financeController.getUser);
 
 // Currency routes
-router.get('/currencies', financeController.getCurrencies);
+router.get('/currencies', authenticate, financeController.getCurrencies);
 
 // Category routes
-router.post('/categories', financeController.createCategory);
-router.get('/users/:userId/categories', financeController.getUserCategories);
-
+router.post('/categories', authenticate, financeController.createCategory);
+router.get('/users/:userId/categories', authenticate, financeController.getUserCategories);
 // Financial Goal routes
-router.post('/financial-goals', financeController.createFinancialGoal);
-router.get('/users/:userId/financial-goals', financeController.getUserFinancialGoals);
+router.post('/financial-goals', authenticate, financeController.createFinancialGoal);
+router.get('/users/:userId/financial-goals', authenticate, financeController.getUserFinancialGoals);
 
 // Transaction routes
-router.post('/transactions', financeController.createTransaction);
-router.get('/users/:userId/transactions', financeController.getUserTransactions);
-router.put('/transactions/:id', financeController.updateTransaction);
-router.delete('/transactions/:id', financeController.deleteTransaction);
+router.post('/transactions', authenticate, financeController.createTransaction);
+router.get('/users/:userId/transactions', authenticate, financeController.getUserTransactions);
+router.put('/transactions/:id', authenticate, financeController.updateTransaction);
+router.delete('/transactions/:id', authenticate, financeController.deleteTransaction);
 
 // Analysis route
-router.get('/users/:userId/analysis', financeController.getFinancialAnalysis);
-
+router.get('/users/:userId/analysis', authenticate, financeController.getFinancialAnalysis);
 // Receipt routes
-router.post('/receipts/upload', receiptController.uploadReceipt);
+router.post('/receipts/upload', authenticate, receiptController.uploadReceipt);
 
-router.get('/transactions/:id', financeController.getTransactionWithItems);
+router.get('/transactions/:id', authenticate, financeController.getTransactionWithItems);
 
 export default router;
