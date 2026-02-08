@@ -26,6 +26,9 @@ export const UserSchema = z.object({
   last_name: z.string(),
   profile: z.enum(['Low-Income', 'High-Income/High-Expense', 'Wealth-Builder']),
   default_currency_code: z.string().length(3).default('COP'),
+  starting_balance: z.number().int().default(0),
+  starting_balance_date: z.string().datetime().optional(),
+  starting_balance_currency_code: z.string().length(3).default('COP'),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
