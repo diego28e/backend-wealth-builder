@@ -68,4 +68,26 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
 export const logout = async (req: Request, res: Response): Promise<void> => {
   clearAuthCookies(res);
   res.json({ message: 'Logout successful' });
-}
+};
+
+export const me = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const user = await authService.getUserById(userId);
+    
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

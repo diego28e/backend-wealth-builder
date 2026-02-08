@@ -51,6 +51,17 @@ export const getUserByEmail = async (email: string): Promise<UserWithPassword | 
   return UserWithPasswordSchema.parse(data);
 };
 
+export const getUserById = async (userId: string): Promise<UserResponse | null> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, first_name, last_name, profile, default_currency_code, created_at, updated_at')
+    .eq('id', userId)
+    .single();
+  
+  if (error) return null;
+  return data as UserResponse;
+};
+
 export const loginUser = async (loginData: LoginInput): Promise<UserWithPassword> => {
   const validatedData = LoginSchema.parse(loginData);
   
