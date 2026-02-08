@@ -3,6 +3,7 @@ import * as financeController from "../controllers/finance.controller.js";
 import { testConnection } from "../config/supabase.js";
 import * as authController from "../controllers/auth.controller.js";
 import * as receiptController from "../controllers/receipt.controller.js";
+import * as categoryGroupController from "../controllers/category-group.controller.js";
 import { authenticate } from "../utils/auth.js";
 import docsRouter from './docs.js';
 
@@ -31,6 +32,9 @@ router.get('/users/:id', authenticate, financeController.getUser);
 
 // Currency routes
 router.get('/currencies', authenticate, financeController.getCurrencies);
+
+// Category Group routes
+router.get('/category-groups', authenticate, categoryGroupController.getCategoryGroups);
 
 // Category routes
 router.post('/categories', authenticate, financeController.createCategory);

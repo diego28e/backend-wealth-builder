@@ -50,12 +50,21 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
   return data;
 };
 
-export const getUserTransactions = async (userId: string): Promise<Transaction[]> => {
-  const { data, error } = await supabase
+export const getUserTransactions = async (userId: string, start_date?: string, end_date?: string): Promise<Transaction[]> => {
+  let query = supabase
     .from('transactions')
     .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .eq('user_id', userId);
+
+  if (start_date) {
+    query = query.gte('date', start_date);
+  }
+
+  if (end_date) {
+    query = query.lte('date', end_date);
+  }
+
+  const { data, error } = await query.order('date', { ascending: false });
 
   if (error) throw new Error(`Failed to fetch transactions: ${error.message}`);
   return data || [];

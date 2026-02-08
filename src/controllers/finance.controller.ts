@@ -34,11 +34,12 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
 export const getUserTransactions = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
+    const { start_date, end_date } = req.query;
     if (!userId) {
       res.status(400).json({ error: 'User ID is required' });
       return;
     }
-    const transactions = await financeService.getUserTransactions(userId);
+    const transactions = await financeService.getUserTransactions(userId, start_date as string, end_date as string);
     res.json(transactions);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' });
