@@ -280,3 +280,69 @@ export const getUserBalance = async (userId: string): Promise<{
     current_calculated_balance: accountsTotal + transactionTotal
   };
 };
+
+export const getCategoryGroupSummary = async (
+  userId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<any[]> => {
+  let query = supabase
+    .from('transactions')
+    .select(`
+      amount,
+      type,
+      categories!inner (
+        category_group_id,
+        category_groups!inner (
+          id,
+          name
+        )
+      )
+    `)
+    .eq('user_id', userId);
+
+  if (startDate) {
+    query = query.gte('date', startDate);
+  }
+  
+  if (endDate) {
+    query = query.lte('date', endDate);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw new Error(`Failed to fetch category group summary: ${error.message}`);
+
+  // Group and aggregate by category group
+  const summaryMap = new Map<string, {
+    category_group_id: string;
+    category_group_name: string;
+    total_amount: number;
+    transaction_count: number;
+  }>();
+
+  data?.forEach((transaction: any) => {
+    const groupId = transaction.categories.category_groups.id;
+    const groupName = transaction.categories.category_groups.name;
+    
+    // Calculate net amount (Income is positive, Expense is negative)
+    const netAmount = transaction.type === 'Income' 
+      ? transaction.amount 
+      : -transaction.amount;
+
+    if (summaryMap.has(groupId)) {
+      const existing = summaryMap.get(groupId)!;
+      existing.total_amount += netAmount;
+      existing.transaction_count += 1;
+    } else {
+      summaryMap.set(groupId, {
+        category_group_id: groupId,
+        category_group_name: groupName,
+        total_amount: netAmount,
+        transaction_count: 1
+      });
+    }
+  });
+
+  return Array.from(summaryMap.values());
+};
