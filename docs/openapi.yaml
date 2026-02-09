@@ -133,6 +133,20 @@ components:
         sort_order:
           type: integer
 
+    CategoryGroupSummary:
+      type: object
+      properties:
+        category_group_id:
+          type: string
+          format: uuid
+        category_group_name:
+          type: string
+        total_amount:
+          type: integer
+          description: Net total amount (Income - Expense) in smallest currency unit
+        transaction_count:
+          type: integer
+
     FinancialGoal:
       type: object
       properties:
@@ -741,6 +755,55 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Category'
+
+  /users/{userId}/category-group-summary:
+    get:
+      summary: Get category group summary
+      description: Aggregated financial data by category group for a given period
+      tags:
+        - Analysis
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter transactions start date (ISO 8601)
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter transactions end date (ISO 8601)
+      responses:
+        '200':
+          description: Category group summary
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryGroupSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /financial-goals:
     post:
