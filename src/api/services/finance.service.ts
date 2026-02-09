@@ -5,7 +5,7 @@ import type { Transaction, User, Category, FinancialGoal, Currency } from '../mo
 export const getUserById = async (id: string): Promise<User | null> => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, profile, default_currency_code, created_at, updated_at')
+    .select('id, email, first_name, last_name, profile, default_currency_code, starting_balance, starting_balance_currency_code, starting_balance_date, created_at, updated_at')
     .eq('id', id)
     .single();
 
@@ -166,4 +166,67 @@ export const getTransactionWithItems = async (transactionId: string) => {
 
   if (error) throw new Error(`Failed to fetch transaction with items: ${error.message}`);
   return data;
+};
+
+export const updateUserStartingBalance = async (
+  userId: string, 
+  startingBalance: number, 
+  currencyCode: string,
+  balanceDate?: string
+): Promise<User> => {
+  const updateData: any = {
+    starting_balance: startingBalance,
+    starting_balance_currency_code: currencyCode,
+    updated_at: new Date().toISOString()
+  };
+
+  if (balanceDate) {
+    updateData.starting_balance_date = balanceDate;
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .update(updateData)
+    .eq('id', userId)
+    .select('id, email, first_name, last_name, profile, default_currency_code, starting_balance, starting_balance_date, starting_balance_currency_code, created_at, updated_at')
+    .single();
+
+  if (error) throw new Error(`Failed to update starting balance: ${error.message}`);
+  return data;
+};
+
+export const getUserBalance = async (userId: string): Promise<{
+  starting_balance: number;
+  starting_balance_date: string;
+  starting_balance_currency_code: string;
+  current_calculated_balance: number;
+}> => {
+  // Get user's starting balance
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('starting_balance, starting_balance_date, starting_balance_currency_code')
+    .eq('id', userId)
+    .single();
+
+  if (userError) throw new Error(`Failed to fetch user balance: ${userError.message}`);
+
+  // Calculate current balance from transactions
+  const { data: transactions, error: transError } = await supabase
+    .from('transactions')
+    .select('amount, type')
+    .eq('user_id', userId)
+    .gte('date', user.starting_balance_date);
+
+  if (transError) throw new Error(`Failed to fetch transactions for balance: ${transError.message}`);
+
+  const transactionTotal = transactions?.reduce((total, transaction) => {
+    return total + (transaction.type === 'Income' ? transaction.amount : -transaction.amount);
+  }, 0) || 0;
+
+  return {
+    starting_balance: user.starting_balance,
+    starting_balance_date: user.starting_balance_date,
+    starting_balance_currency_code: user.starting_balance_currency_code,
+    current_calculated_balance: user.starting_balance + transactionTotal
+  };
 };
