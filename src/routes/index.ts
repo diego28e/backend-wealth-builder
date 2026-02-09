@@ -49,6 +49,10 @@ router.get('/users/:userId/transactions', authenticate, financeController.getUse
 router.put('/transactions/:id', authenticate, financeController.updateTransaction);
 router.delete('/transactions/:id', authenticate, financeController.deleteTransaction);
 
+// User balance routes
+router.put('/users/:userId/starting-balance', authenticate, financeController.updateStartingBalance);
+router.get('/users/:userId/balance', authenticate, financeController.getUserBalance);
+
 // Analysis route
 router.get('/users/:userId/analysis', authenticate, financeController.getFinancialAnalysis);
 // Receipt routes
