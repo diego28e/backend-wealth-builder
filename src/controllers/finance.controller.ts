@@ -279,3 +279,27 @@ export const createAccount = async (req: Request, res: Response): Promise<void> 
     res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });
   }
 };
+
+export const getCategoryGroupSummary = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { start_date, end_date } = req.query;
+
+    if (!userId) {
+      res.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    const summary = await financeService.getCategoryGroupSummary(
+      userId,
+      start_date as string,
+      end_date as string
+    );
+
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to fetch category group summary'
+    });
+  }
+};
