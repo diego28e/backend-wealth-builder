@@ -23,8 +23,30 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
 
 export const createTransaction = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionData = TransactionSchema.omit({ id: true, created_at: true, updated_at: true }).parse(req.body);
-    const transaction = await financeService.createTransaction(transactionData);
+    const transactionDataPartial = TransactionSchema.omit({ id: true, created_at: true, updated_at: true, account_id: true }).parse(req.body);
+
+    let accountId = req.body.account_id;
+
+    // Validate provided account_id or fetch default
+    if (accountId) {
+      // Simple UUID check or trust service/db constraint
+      // We can just pass it. Service/DB will reject if invalid.
+    } else {
+      const accounts = await financeService.getAccounts(transactionDataPartial.user_id);
+      if (accounts.length > 0) {
+        accountId = accounts[0].id;
+      } else {
+        res.status(400).json({ error: 'User has no accounts. Please create an account.' });
+        return;
+      }
+    }
+
+    const finalTransactionData = {
+      ...transactionDataPartial,
+      account_id: accountId
+    };
+
+    const transaction = await financeService.createTransaction(finalTransactionData as any);
     res.status(201).json(transaction);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });
@@ -194,7 +216,7 @@ export const getTransactionWithItems = async (req: Request, res: Response): Prom
 export const updateStartingBalance = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
-    const { starting_balance, currency_code, balance_date } = req.body;
+    const { starting_balance, currency_code } = req.body;
 
     if (!userId) {
       res.status(400).json({ error: 'User ID is required' });
@@ -206,14 +228,13 @@ export const updateStartingBalance = async (req: Request, res: Response): Promis
       return;
     }
 
-    const user = await financeService.updateUserStartingBalance(
-      userId, 
-      starting_balance, 
-      currency_code,
-      balance_date
+    const account = await financeService.updateMainAccount(
+      userId,
+      starting_balance,
+      currency_code
     );
-    
-    res.json(user);
+
+    res.json(account);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Update failed' });
   }
@@ -222,7 +243,7 @@ export const updateStartingBalance = async (req: Request, res: Response): Promis
 export const getUserBalance = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
-    
+
     if (!userId) {
       res.status(400).json({ error: 'User ID is required' });
       return;

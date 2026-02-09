@@ -15,6 +15,8 @@ export const TransactionSchema = z.object({
   receipt_processed_at: z.string().datetime().optional(),
   merchant_name: z.string().optional(),
   has_line_items: z.boolean().optional(),
+  account_id: z.string().uuid(),
+  transfer_destination_account_id: z.string().uuid().optional().nullable(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
@@ -26,9 +28,21 @@ export const UserSchema = z.object({
   last_name: z.string(),
   profile: z.enum(['Low-Income', 'High-Income/High-Expense', 'Wealth-Builder']),
   default_currency_code: z.string().length(3).default('COP'),
-  starting_balance: z.number().int().default(0),
-  starting_balance_date: z.string().datetime().optional(),
-  starting_balance_currency_code: z.string().length(3).default('COP'),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional()
+});
+
+export const AccountTypeSchema = z.enum(['Checking', 'Savings', 'Credit Card', 'Cash', 'Investment', 'Loan', 'Other']);
+
+export const AccountSchema = z.object({
+  id: z.string().uuid().optional(),
+  user_id: z.string().uuid(),
+  name: z.string().min(1),
+  type: AccountTypeSchema,
+  currency_code: z.string().length(3),
+  current_balance: z.number().int().default(0),
+  is_active: z.boolean().default(true),
+  color: z.string().optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
@@ -81,6 +95,8 @@ export type Category = z.infer<typeof CategorySchema>;
 export type CategoryGroup = z.infer<typeof CategoryGroupSchema>;
 export type FinancialGoal = z.infer<typeof FinancialGoalSchema>;
 export type Currency = z.infer<typeof CurrencySchema>;
+export type Account = z.infer<typeof AccountSchema>;
+export type AccountType = z.infer<typeof AccountTypeSchema>;
 export type FinancialProfile = User['profile'];
 
 export const TransactionItemSchema = z.object({

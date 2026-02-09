@@ -5,7 +5,7 @@ import type { Transaction, User, Category, FinancialGoal, Currency } from '../mo
 export const getUserById = async (id: string): Promise<User | null> => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, first_name, last_name, profile, default_currency_code, starting_balance, starting_balance_currency_code, starting_balance_date, created_at, updated_at')
+    .select('id, email, first_name, last_name, profile, default_currency_code, created_at, updated_at')
     .eq('id', id)
     .single();
 
@@ -168,54 +168,92 @@ export const getTransactionWithItems = async (transactionId: string) => {
   return data;
 };
 
-export const updateUserStartingBalance = async (
-  userId: string, 
-  startingBalance: number, 
-  currencyCode: string,
-  balanceDate?: string
-): Promise<User> => {
-  const updateData: any = {
-    starting_balance: startingBalance,
-    starting_balance_currency_code: currencyCode,
-    updated_at: new Date().toISOString()
-  };
 
-  if (balanceDate) {
-    updateData.starting_balance_date = balanceDate;
+export const getAccounts = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('created_at');
+
+  if (error) throw new Error(`Failed to fetch accounts: ${error.message}`);
+  return data || [];
+};
+
+export const updateMainAccount = async (
+  userId: string,
+  startingBalance: number,
+  currencyCode: string
+) => {
+  // Find the first account for the user (assumed to be main)
+  const { data: accounts, error: fetchError } = await supabase
+    .from('accounts')
+    .select('id')
+    .eq('user_id', userId)
+    .order('created_at')
+    .limit(1);
+
+  if (fetchError) throw new Error(`Failed to fetch account: ${fetchError.message}`);
+
+  if (!accounts || accounts.length === 0) {
+    // Create one if doesn't exist (fallback)
+    const { data: newAccount, error: createError } = await supabase
+      .from('accounts')
+      .insert({
+        user_id: userId,
+        name: 'Main Account',
+        type: 'Cash',
+        currency_code: currencyCode,
+        current_balance: startingBalance
+      })
+      .select()
+      .single();
+
+    if (createError) throw new Error(`Failed to create main account: ${createError.message}`);
+    return newAccount;
   }
 
+  const accountId = accounts[0].id;
+
   const { data, error } = await supabase
-    .from('users')
-    .update(updateData)
-    .eq('id', userId)
-    .select('id, email, first_name, last_name, profile, default_currency_code, starting_balance, starting_balance_date, starting_balance_currency_code, created_at, updated_at')
+    .from('accounts')
+    .update({
+      current_balance: startingBalance,
+      currency_code: currencyCode,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', accountId)
+    .select()
     .single();
 
-  if (error) throw new Error(`Failed to update starting balance: ${error.message}`);
+  if (error) throw new Error(`Failed to update account balance: ${error.message}`);
   return data;
 };
 
 export const getUserBalance = async (userId: string): Promise<{
-  starting_balance: number;
-  starting_balance_date: string;
-  starting_balance_currency_code: string;
+  accounts_total_balance: number;
+  currency_code: string;
   current_calculated_balance: number;
 }> => {
-  // Get user's starting balance
-  const { data: user, error: userError } = await supabase
-    .from('users')
-    .select('starting_balance, starting_balance_date, starting_balance_currency_code')
-    .eq('id', userId)
-    .single();
+  // Get all active accounts
+  const { data: accounts, error: accountError } = await supabase
+    .from('accounts')
+    .select('current_balance, currency_code')
+    .eq('user_id', userId)
+    .eq('is_active', true);
 
-  if (userError) throw new Error(`Failed to fetch user balance: ${userError.message}`);
+  if (accountError) throw new Error(`Failed to fetch user accounts: ${accountError.message}`);
 
-  // Calculate current balance from transactions
+  // Calculate total initial balance from all accounts
+  const accountsTotal = (accounts || []).reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
+  const currencyCode = (accounts && accounts.length > 0) ? accounts[0].currency_code : 'COP';
+
+  // Get all transactions
   const { data: transactions, error: transError } = await supabase
     .from('transactions')
     .select('amount, type')
-    .eq('user_id', userId)
-    .gte('date', user.starting_balance_date);
+    .eq('user_id', userId);
 
   if (transError) throw new Error(`Failed to fetch transactions for balance: ${transError.message}`);
 
@@ -224,9 +262,8 @@ export const getUserBalance = async (userId: string): Promise<{
   }, 0) || 0;
 
   return {
-    starting_balance: user.starting_balance,
-    starting_balance_date: user.starting_balance_date,
-    starting_balance_currency_code: user.starting_balance_currency_code,
-    current_calculated_balance: user.starting_balance + transactionTotal
+    accounts_total_balance: accountsTotal,
+    currency_code: currencyCode,
+    current_calculated_balance: accountsTotal + transactionTotal
   };
 };
