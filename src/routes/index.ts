@@ -30,6 +30,10 @@ router.get('/me', authenticate, authController.me);
 // User routes
 router.get('/users/:id', authenticate, financeController.getUser);
 
+// Account routes
+router.post('/accounts', authenticate, financeController.createAccount);
+router.get('/users/:userId/accounts', authenticate, financeController.getAccounts);
+
 // Currency routes
 router.get('/currencies', authenticate, financeController.getCurrencies);
 

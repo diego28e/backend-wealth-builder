@@ -1,6 +1,6 @@
 import { supabase } from '../../config/supabase.js';
-import { TransactionSchema, CategorySchema, FinancialGoalSchema } from '../models/finance.model.js';
-import type { Transaction, User, Category, FinancialGoal, Currency } from '../models/finance.model.js';
+import { TransactionSchema, CategorySchema, FinancialGoalSchema, AccountSchema } from '../models/finance.model.js';
+import type { Transaction, User, Category, FinancialGoal, Currency, Account } from '../models/finance.model.js';
 
 export const getUserById = async (id: string): Promise<User | null> => {
   const { data, error } = await supabase
@@ -181,6 +181,19 @@ export const getAccounts = async (userId: string) => {
   return data || [];
 };
 
+export const createAccount = async (accountData: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<Account> => {
+  const validatedData = AccountSchema.omit({ id: true, created_at: true, updated_at: true }).parse(accountData);
+
+  const { data, error } = await supabase
+    .from('accounts')
+    .insert(validatedData)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create account: ${error.message}`);
+  return data;
+};
+
 export const updateMainAccount = async (
   userId: string,
   startingBalance: number,
@@ -214,7 +227,7 @@ export const updateMainAccount = async (
     return newAccount;
   }
 
-  const accountId = accounts[0].id;
+  const accountId = accounts?.[0]?.id!;
 
   const { data, error } = await supabase
     .from('accounts')
@@ -247,7 +260,7 @@ export const getUserBalance = async (userId: string): Promise<{
 
   // Calculate total initial balance from all accounts
   const accountsTotal = (accounts || []).reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
-  const currencyCode = (accounts && accounts.length > 0) ? accounts[0].currency_code : 'COP';
+  const currencyCode = accounts?.[0]?.currency_code || 'COP';
 
   // Get all transactions
   const { data: transactions, error: transError } = await supabase
@@ -257,9 +270,9 @@ export const getUserBalance = async (userId: string): Promise<{
 
   if (transError) throw new Error(`Failed to fetch transactions for balance: ${transError.message}`);
 
-  const transactionTotal = transactions?.reduce((total, transaction) => {
+  const transactionTotal = (transactions || []).reduce((total, transaction) => {
     return total + (transaction.type === 'Income' ? transaction.amount : -transaction.amount);
-  }, 0) || 0;
+  }, 0);
 
   return {
     accounts_total_balance: accountsTotal,
