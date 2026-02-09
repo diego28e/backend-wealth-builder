@@ -190,3 +190,47 @@ export const getTransactionWithItems = async (req: Request, res: Response): Prom
     res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' })
   }
 }
+
+export const updateStartingBalance = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { starting_balance, currency_code, balance_date } = req.body;
+
+    if (!userId) {
+      res.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    if (starting_balance === undefined || !currency_code) {
+      res.status(400).json({ error: 'Starting balance and currency code are required' });
+      return;
+    }
+
+    const user = await financeService.updateUserStartingBalance(
+      userId, 
+      starting_balance, 
+      currency_code,
+      balance_date
+    );
+    
+    res.json(user);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Update failed' });
+  }
+};
+
+export const getUserBalance = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'User ID is required' });
+      return;
+    }
+
+    const balance = await financeService.getUserBalance(userId);
+    res.json(balance);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' });
+  }
+};
