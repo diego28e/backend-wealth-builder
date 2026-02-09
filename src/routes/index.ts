@@ -43,6 +43,9 @@ router.get('/category-groups', authenticate, categoryGroupController.getCategory
 // Category routes
 router.post('/categories', authenticate, financeController.createCategory);
 router.get('/users/:userId/categories', authenticate, financeController.getUserCategories);
+
+// Category Group Summary route
+router.get('/users/:userId/category-group-summary', authenticate, financeController.getCategoryGroupSummary);
 // Financial Goal routes
 router.post('/financial-goals', authenticate, financeController.createFinancialGoal);
 router.get('/users/:userId/financial-goals', authenticate, financeController.getUserFinancialGoals);
