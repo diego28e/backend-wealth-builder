@@ -10,7 +10,8 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5174',
-    'https://finance.intellectif.com'
+    'https://finance.intellectif.com',
+    'https://main.d2zauelvzbn0ho.amplifyapp.com'
   ],
   credentials: true
 }))
