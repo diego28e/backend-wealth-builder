@@ -43,6 +43,8 @@ export const AccountSchema = z.object({
   current_balance: z.number().int().default(0),
   is_active: z.boolean().default(true),
   color: z.string().optional(),
+  is_tax_exempt: z.boolean().default(false),
+  interest_rate: z.number().default(0),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
