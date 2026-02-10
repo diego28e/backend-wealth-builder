@@ -12,38 +12,40 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy and Build on Oracle Cloud
+      - name: Deploy to Oracle Cloud
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.ORACLE_HOST }}
           username: ${{ secrets.ORACLE_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            # 1. Navigate to project folder (create if it doesn't exist)
-            mkdir -p ~/app
-            cd ~/app
-
-            # 2. Sync the code (using git since it's already a repo)
-            if [ -d ".git" ]; then
-              git pull origin main
-            else
-              git clone https://github.com/${{ github.repository }} .
+            # 1. Setup project directory (explicit path)
+            TARGET_DIR="/home/ubuntu/backend-wealth-builder"
+            if [ ! -d "$TARGET_DIR" ]; then
+              git clone https://github.com/${{ github.repository }} "$TARGET_DIR"
             fi
+            
+            # 2. Enter directory and get latest code
+            cd "$TARGET_DIR"
+            git fetch origin
+            git reset --hard origin/main
 
-            # 3. Build the image NATIVELY (Super fast, no QEMU needed)
+            # 3. Build the image locally (native ARM64)
+            # This uses the server's own architecture, avoiding QEMU slowness
             docker build -t finance-backend:latest .
 
-            # 4. Stop and remove old container
-            docker stop finance-backend || true
-            docker rm finance-backend || true
-
-            # 5. Run new container
+            # 4. Cleanup old containers
+            docker stop finance-backend finance-debug || true
+            docker rm finance-backend finance-debug || true
+            
+            # 5. Run the production container
+            # Using the .env.production file from the project root (managed manually on server)
             docker run -d \
               --name finance-backend \
               --restart unless-stopped \
               -p 3000:3000 \
-              --env-file ~/.env.production \
+              --env-file .env.production \
               finance-backend:latest
-
-            # 6. Cleanup
+            
+            # 6. Housekeeping (remove unused images to save space)
             docker image prune -f
