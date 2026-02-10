@@ -196,6 +196,11 @@ components:
           type: integer
         is_active:
           type: boolean
+        is_tax_exempt:
+          type: boolean
+        interest_rate:
+          type: number
+          description: Annual Interest Rate (e.g. 8.75 for 8.75% E.A.)
         configurations:
           type: array
           items:
@@ -236,9 +241,6 @@ components:
           nullable: true
         is_active:
           type: boolean
-        created_at:
-          type: string
-          format: date-time
         created_at:
           type: string
           format: date-time
@@ -309,6 +311,11 @@ paths:
                   type: string
                 current_balance:
                   type: integer
+                interest_rate:
+                  type: number
+                  description: Annual Interest Rate (e.g. 8.75)
+                is_tax_exempt:
+                  type: boolean
       responses:
         '201':
           description: Account created
@@ -353,6 +360,11 @@ paths:
                   type: string
                 current_balance:
                   type: integer
+                interest_rate:
+                  type: number
+                  description: Annual Interest Rate (e.g. 8.75)
+                is_tax_exempt:
+                  type: boolean
                 is_active:
                   type: boolean
                 configurations:
