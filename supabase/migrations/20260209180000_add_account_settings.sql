@@ -1,6 +1,6 @@
 -- Create account_configurations table for flexible fees and settings
 CREATE TABLE public.account_configurations (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
   account_id uuid NOT NULL,
   name text NOT NULL,
   type text NOT NULL CHECK (type IN ('PERCENTAGE', 'FIXED')),
