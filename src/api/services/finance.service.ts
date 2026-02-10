@@ -40,14 +40,71 @@ export const getUserCategories = async (userId: string): Promise<Category[]> => 
 export const createTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>): Promise<Transaction> => {
   const validatedData = TransactionSchema.omit({ id: true, created_at: true, updated_at: true }).parse(transactionData);
 
-  const { data, error } = await supabase
+  // 1. Create Transaction
+  const { data: transaction, error } = await supabase
     .from('transactions')
     .insert(validatedData)
     .select()
     .single();
 
   if (error) throw new Error(`Failed to create transaction: ${error.message}`);
-  return data;
+
+  // 2. Process Account Fees (Automated) - ONLY for createTransaction
+  try {
+    const { data: configs } = await supabase
+      .from('account_configurations')
+      .select('*')
+      .eq('account_id', validatedData.account_id)
+      .eq('is_active', true);
+
+    if (configs && configs.length > 0) {
+      const feeTransactions = [];
+      const transactionAmount = validatedData.amount;
+      const transactionType = validatedData.type;
+
+      for (const config of configs) {
+        const appliesTo = config.applies_to || 'ALL';
+        const isApplicable =
+          config.frequency === 'PER_TRANSACTION' &&
+          (appliesTo === 'ALL' ||
+            (appliesTo === 'INCOME' && transactionType === 'Income') ||
+            (appliesTo === 'EXPENSE' && transactionType === 'Expense'));
+
+        if (isApplicable) {
+          let feeAmount = 0;
+          if (config.type === 'PERCENTAGE') {
+            feeAmount = Math.round(transactionAmount * (config.value / 100));
+          } else if (config.type === 'FIXED') {
+            feeAmount = config.value;
+          }
+
+          if (feeAmount > 0) {
+            feeTransactions.push({
+              user_id: validatedData.user_id,
+              account_id: validatedData.account_id,
+              category_id: validatedData.category_id,
+              date: validatedData.date,
+              type: 'Expense',
+              amount: feeAmount,
+              currency_code: validatedData.currency_code,
+              description: `Fee: ${config.name} (Ref: ${validatedData.description})`,
+              notes: `Automated fee applied based on configuration: ${config.name}`,
+              created_at: new Date().toISOString() // Ensure unique timestamp or just sequential
+            });
+          }
+        }
+      }
+
+      if (feeTransactions.length > 0) {
+        const { error: feeError } = await supabase.from('transactions').insert(feeTransactions);
+        if (feeError) console.error('Failed to create fee transactions:', feeError);
+      }
+    }
+  } catch (err) {
+    console.error('Error applying fees:', err);
+  }
+
+  return transaction;
 };
 
 export const getUserTransactions = async (userId: string, start_date?: string, end_date?: string): Promise<Transaction[]> => {
@@ -188,6 +245,7 @@ export const createAccount = async (accountData: any): Promise<Account> => {
   const { configurations, ...accData } = accountData;
   const validatedData = AccountSchema.omit({ id: true, created_at: true, updated_at: true }).parse(accData);
 
+  // 1. Create the account
   const { data: account, error } = await supabase
     .from('accounts')
     .insert(validatedData)
@@ -196,6 +254,7 @@ export const createAccount = async (accountData: any): Promise<Account> => {
 
   if (error) throw new Error(`Failed to create account: ${error.message}`);
 
+  // 2. Add configurations
   if (configurations && Array.isArray(configurations)) {
     const configs = configurations.map((c: any) => ({
       ...c,
@@ -329,26 +388,14 @@ export const getUserBalance = async (userId: string): Promise<{
 
   if (accountError) throw new Error(`Failed to fetch user accounts: ${accountError.message}`);
 
-  // Calculate total initial balance from all accounts
+  // Since DB Trigger keeps current_balance updated, we just sum them up.
   const accountsTotal = (accounts || []).reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
   const currencyCode = accounts?.[0]?.currency_code || 'COP';
-
-  // Get all transactions
-  const { data: transactions, error: transError } = await supabase
-    .from('transactions')
-    .select('amount, type')
-    .eq('user_id', userId);
-
-  if (transError) throw new Error(`Failed to fetch transactions for balance: ${transError.message}`);
-
-  const transactionTotal = (transactions || []).reduce((total, transaction) => {
-    return total + (transaction.type === 'Income' ? transaction.amount : -transaction.amount);
-  }, 0);
 
   return {
     accounts_total_balance: accountsTotal,
     currency_code: currencyCode,
-    current_calculated_balance: accountsTotal + transactionTotal
+    current_calculated_balance: accountsTotal // Now same as total, logic simplified
   };
 };
 
