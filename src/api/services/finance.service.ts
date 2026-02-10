@@ -262,6 +262,59 @@ export const updateMainAccount = async (
   return data;
 };
 
+export const updateAccount = async (id: string, updates: any): Promise<Account> => {
+  const { configurations, ...accountUpdates } = updates;
+
+  // 1. Update Account fields if any
+  if (Object.keys(accountUpdates).length > 0) {
+    const { error } = await supabase
+      .from('accounts')
+      .update(accountUpdates)
+      .eq('id', id);
+
+    if (error) throw new Error(`Failed to update account: ${error.message}`);
+  }
+
+  // 2. Update configurations if provided (Replace strategy)
+  if (configurations && Array.isArray(configurations)) {
+    // Delete existing
+    const { error: deleteError } = await supabase
+      .from('account_configurations')
+      .delete()
+      .eq('account_id', id);
+
+    if (deleteError) throw new Error(`Failed to update configurations (delete old): ${deleteError.message}`);
+
+    // Insert new
+    if (configurations.length > 0) {
+      const configs = configurations.map((c: any) => ({
+        ...c,
+        id: undefined, // ensure new IDs or let DB generate
+        account_id: id
+      }));
+
+      const { error: insertError } = await supabase
+        .from('account_configurations')
+        .insert(configs);
+
+      if (insertError) throw new Error(`Failed to update configurations (insert new): ${insertError.message}`);
+    }
+  }
+
+  // Return updated structure
+  const { data, error: fetchError } = await supabase
+    .from('accounts')
+    .select(`
+      *,
+      account_configurations (*)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (fetchError) throw new Error(`Failed to fetch updated account: ${fetchError.message}`);
+  return data;
+};
+
 export const getUserBalance = async (userId: string): Promise<{
   accounts_total_balance: number;
   currency_code: string;

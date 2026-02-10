@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import * as financeService from '../api/services/finance.service.js';
 import { analyzeFinancials } from '../api/services/llm.service.js';
 import { TransactionSchema, CategorySchema, FinancialGoalSchema, AccountSchema } from '../api/models/finance.model.js';
+import type { Account } from '../api/models/finance.model.js';
 
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -23,30 +24,54 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
 
 export const createTransaction = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionDataPartial = TransactionSchema.omit({ id: true, created_at: true, updated_at: true, account_id: true }).parse(req.body);
+    let { date, currency_code, account_id, user_id, ...rest } = req.body;
 
-    let accountId = req.body.account_id;
+    // 1. Normalize Date (Handle YYYY-MM-DD by converting to ISO)
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      date = new Date(date).toISOString();
+    }
 
-    // Validate provided account_id or fetch default
-    if (accountId) {
-      // Simple UUID check or trust service/db constraint
-      // We can just pass it. Service/DB will reject if invalid.
+    // 2. Resolve Account and Currency
+    // Fetch user accounts to validate account_id ownership and get currency
+    const accounts = await financeService.getAccounts(user_id);
+    let selectedAccount: Account | undefined;
+
+    if (account_id) {
+      selectedAccount = accounts.find((a: Account) => a.id === account_id);
+      if (!selectedAccount) {
+        res.status(400).json({ error: 'Invalid account_id or account not found for user' });
+        return;
+      }
     } else {
-      const accounts = await financeService.getAccounts(transactionDataPartial.user_id);
+      // Default to first account if not specified
       if (accounts.length > 0) {
-        accountId = accounts[0].id;
+        selectedAccount = accounts[0];
+        account_id = selectedAccount!.id;
       } else {
         res.status(400).json({ error: 'User has no accounts. Please create an account.' });
         return;
       }
     }
 
-    const finalTransactionData = {
-      ...transactionDataPartial,
-      account_id: accountId
+    // 3. Infer Currency if missing
+    if (!currency_code && selectedAccount) {
+      currency_code = (selectedAccount as Account).currency_code;
+    }
+
+    // 4. Construct Full Payload
+    const fullTransactionData = {
+      ...rest,
+      user_id,
+      account_id,
+      date,
+      currency_code
     };
 
-    const transaction = await financeService.createTransaction(finalTransactionData as any);
+    // 5. Validate against Schema
+    const validatedData = TransactionSchema.omit({ id: true, created_at: true, updated_at: true }).parse(fullTransactionData);
+
+    // 6. Create Transaction (Service also validates, but we validated to be sure)
+    const transaction = await financeService.createTransaction(validatedData as any);
     res.status(201).json(transaction);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });
@@ -281,6 +306,29 @@ export const createAccount = async (req: Request, res: Response): Promise<void> 
     res.status(201).json(account);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });
+  }
+};
+
+export const updateAccount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ error: 'Account ID is required' });
+      return;
+    }
+
+    // Separate configurations from account data for loose validation (since updates are partial)
+    const { configurations, ...rest } = req.body;
+
+    // Validate account fields if present (Partial)
+    if (Object.keys(rest).length > 0) {
+      AccountSchema.omit({ id: true, created_at: true, updated_at: true }).partial().parse(rest);
+    }
+
+    const account = await financeService.updateAccount(id, { ...rest, configurations });
+    res.json(account);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Update failed' });
   }
 };
 
