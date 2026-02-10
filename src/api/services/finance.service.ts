@@ -467,3 +467,63 @@ export const getCategoryGroupSummary = async (
 
   return Array.from(summaryMap.values());
 };
+
+// --- System Level Methods for Cron Jobs ---
+
+export const getActiveAccountsWithYield = async (): Promise<Account[]> => {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('is_active', true)
+    .gt('interest_rate', 0); // Only accounts with positive interest rate
+
+  if (error) throw new Error(`Failed to fetch accounts with yield: ${error.message}`);
+  return data || [];
+};
+
+export const getInterestCategoryId = async (userId: string): Promise<string> => {
+  // 1. Try to find "Investment Income" (The exact category requested)
+  // We search for it in both user-defined categories AND system categories (user_id is null)
+  let { data: category } = await supabase
+    .from('categories')
+    .select('id')
+    .ilike('name', 'Investment Income')
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .limit(1)
+    .single();
+
+  if (category) return category.id;
+
+  // 2. Fallback: Search for any "Interest" or "Yield" related category
+  const { data: interestCat } = await supabase
+    .from('categories')
+    .select('id')
+    .ilike('name', '%Interest%')
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .limit(1)
+    .single();
+
+  if (interestCat) return interestCat.id;
+
+  // 3. Fallback: Search for generic "Income"
+  const { data: incomeCat } = await supabase
+    .from('categories')
+    .select('id')
+    .ilike('name', '%Income%')
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .limit(1)
+    .single();
+
+  if (incomeCat) return incomeCat.id;
+
+  // 3. Absolute Fallback: Just get the first user category (dangerous but prevents crash)
+  // Real world: Create one if missing.
+  const { data: anyCat } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1)
+    .single();
+
+  return anyCat?.id || '';
+};

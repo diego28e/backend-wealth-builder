@@ -3,6 +3,10 @@ import type { Application, Request, Response } from "express";
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import router from "./routes/index.js";
+import { startYieldJob } from "./jobs/yield.job.js";
+
+// Initialize Cron Jobs
+startYieldJob();
 
 const app: Application = express();
 
