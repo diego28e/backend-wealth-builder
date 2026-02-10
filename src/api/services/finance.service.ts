@@ -53,7 +53,7 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
   try {
     const { data: configs } = await supabase
       .from('account_configurations')
-      .select('*')
+      .select('*, accounts(name)') // Fetch account name
       .eq('account_id', validatedData.account_id)
       .eq('is_active', true);
 
@@ -79,6 +79,8 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
           }
 
           if (feeAmount > 0) {
+            const accountName = (config as any).accounts?.name || 'Bank Fee';
+
             feeTransactions.push({
               user_id: validatedData.user_id,
               account_id: validatedData.account_id,
@@ -89,6 +91,7 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
               currency_code: validatedData.currency_code,
               description: `Fee: ${config.name} (Ref: ${validatedData.description})`,
               notes: `Automated fee applied based on configuration: ${config.name}`,
+              merchant_name: accountName, // Use Account Name as Merchant
               created_at: new Date().toISOString() // Ensure unique timestamp or just sequential
             });
           }
