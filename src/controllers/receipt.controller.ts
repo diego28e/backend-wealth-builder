@@ -5,7 +5,7 @@ import { supabase } from '../config/supabase.js';
 
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { image_base64, user_id } = req.body;
+    const { image_base64, user_id, account_id } = req.body;
 
     if (!image_base64) {
       res.status(400).json({ error: 'image_base64 is required' });
@@ -17,7 +17,12 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    console.log('📸 Processing receipt for user:', user_id);
+    if (!account_id) {
+      res.status(400).json({ error: 'account_id is required' });
+      return;
+    }
+
+    console.log('📸 Processing receipt for user:', user_id, 'account:', account_id);
 
     // Get user categories
     const categories = await getUserCategories(user_id);
@@ -31,7 +36,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     // Upload image to Supabase Storage
     const fileName = `${user_id}/${Date.now()}.jpg`;
     const imageBuffer = Buffer.from(image_base64, 'base64');
-    
+
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('receipts')
       .upload(fileName, imageBuffer, {
@@ -54,7 +59,8 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     const transaction = await createTransactionFromReceipt(
       receiptData,
       user_id,
-      urlData.publicUrl
+      urlData.publicUrl,
+      account_id
     );
 
     console.log('✅ Transaction created:', transaction.id);
