@@ -272,8 +272,12 @@ export const getAccounts = async (req: Request, res: Response): Promise<void> =>
 
 export const createAccount = async (req: Request, res: Response): Promise<void> => {
   try {
-    const accountData = AccountSchema.omit({ id: true, created_at: true, updated_at: true }).parse(req.body);
-    const account = await financeService.createAccount(accountData);
+    // Separate configurations from account data to validate account data specifically
+    const { configurations, ...rest } = req.body;
+    const accountData = AccountSchema.omit({ id: true, created_at: true, updated_at: true }).parse(rest);
+
+    // Pass everything to service which handles both
+    const account = await financeService.createAccount({ ...accountData, configurations });
     res.status(201).json(account);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid data' });

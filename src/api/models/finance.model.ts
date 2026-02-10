@@ -42,11 +42,21 @@ export const AccountSchema = z.object({
   currency_code: z.string().length(3),
   current_balance: z.number().int().default(0),
   is_active: z.boolean().default(true),
-  is_tax_exempt: z.boolean().default(false),
-  interest_rate: z.number().min(0).default(0),
-  monthly_fee: z.number().int().min(0).default(0),
-  transaction_fee: z.number().int().min(0).default(0),
   color: z.string().optional(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional()
+});
+
+export const AccountConfigurationSchema = z.object({
+  id: z.string().uuid().optional(),
+  account_id: z.string().uuid(),
+  name: z.string().min(1),
+  type: z.enum(['PERCENTAGE', 'FIXED']),
+  value: z.number(),
+  currency_code: z.string().length(3).optional(),
+  frequency: z.enum(['PER_TRANSACTION', 'MONTHLY', 'ANNUAL', 'ONE_TIME']),
+  applies_to: z.enum(['ALL', 'INCOME', 'EXPENSE', 'BALANCE']).optional(),
+  is_active: z.boolean().default(true),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
@@ -100,6 +110,7 @@ export type CategoryGroup = z.infer<typeof CategoryGroupSchema>;
 export type FinancialGoal = z.infer<typeof FinancialGoalSchema>;
 export type Currency = z.infer<typeof CurrencySchema>;
 export type Account = z.infer<typeof AccountSchema>;
+export type AccountConfiguration = z.infer<typeof AccountConfigurationSchema>;
 export type AccountType = z.infer<typeof AccountTypeSchema>;
 export type FinancialProfile = User['profile'];
 

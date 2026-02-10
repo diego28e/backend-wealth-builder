@@ -172,7 +172,10 @@ export const getTransactionWithItems = async (transactionId: string) => {
 export const getAccounts = async (userId: string) => {
   const { data, error } = await supabase
     .from('accounts')
-    .select('*')
+    .select(`
+      *,
+      account_configurations (*)
+    `)
     .eq('user_id', userId)
     .eq('is_active', true)
     .order('created_at');
@@ -181,17 +184,32 @@ export const getAccounts = async (userId: string) => {
   return data || [];
 };
 
-export const createAccount = async (accountData: Omit<Account, 'id' | 'created_at' | 'updated_at'>): Promise<Account> => {
-  const validatedData = AccountSchema.omit({ id: true, created_at: true, updated_at: true }).parse(accountData);
+export const createAccount = async (accountData: any): Promise<Account> => {
+  const { configurations, ...accData } = accountData;
+  const validatedData = AccountSchema.omit({ id: true, created_at: true, updated_at: true }).parse(accData);
 
-  const { data, error } = await supabase
+  const { data: account, error } = await supabase
     .from('accounts')
     .insert(validatedData)
     .select()
     .single();
 
   if (error) throw new Error(`Failed to create account: ${error.message}`);
-  return data;
+
+  if (configurations && Array.isArray(configurations)) {
+    const configs = configurations.map((c: any) => ({
+      ...c,
+      account_id: account.id
+    }));
+
+    const { error: configError } = await supabase
+      .from('account_configurations')
+      .insert(configs);
+
+    if (configError) throw new Error(`Failed to create account configurations: ${configError.message}`);
+  }
+
+  return account;
 };
 
 export const updateMainAccount = async (
