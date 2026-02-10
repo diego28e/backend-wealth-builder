@@ -194,6 +194,23 @@ components:
           example: COP
         current_balance:
           type: integer
+        is_tax_exempt:
+          type: boolean
+          default: false
+          description: Exempt from 4x1000 tax (GMF)
+        interest_rate:
+          type: number
+          format: float
+          default: 0
+          description: Annual interest rate percentage
+        monthly_fee:
+          type: integer
+          default: 0
+          description: Fixed monthly maintenance fee
+        transaction_fee:
+          type: integer
+          default: 0
+          description: Fee per transaction
         is_active:
           type: boolean
         created_at:

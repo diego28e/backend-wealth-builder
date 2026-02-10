@@ -304,7 +304,7 @@ export const getCategoryGroupSummary = async (
   if (startDate) {
     query = query.gte('date', startDate);
   }
-  
+
   if (endDate) {
     query = query.lte('date', endDate);
   }
@@ -324,10 +324,10 @@ export const getCategoryGroupSummary = async (
   data?.forEach((transaction: any) => {
     const groupId = transaction.categories.category_groups.id;
     const groupName = transaction.categories.category_groups.name;
-    
+
     // Calculate net amount (Income is positive, Expense is negative)
-    const netAmount = transaction.type === 'Income' 
-      ? transaction.amount 
+    const netAmount = transaction.type === 'Income'
+      ? transaction.amount
       : -transaction.amount;
 
     if (summaryMap.has(groupId)) {
