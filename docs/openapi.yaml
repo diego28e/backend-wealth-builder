@@ -172,6 +172,9 @@ components:
           nullable: true
         currency_code:
           type: string
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED, ARCHIVED, CANCELLED]
         is_active:
           type: boolean
 
@@ -278,6 +281,175 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
+
+  /goals:
+    post:
+      summary: Create financial goal
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - name
+                - currency_code
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                description:
+                  type: string
+                target_amount:
+                  type: integer
+                current_amount:
+                  type: integer
+                target_date:
+                  type: string
+                  format: date
+                category_id:
+                  type: string
+                  format: uuid
+                currency_code:
+                  type: string
+                  example: COP
+      responses:
+        '201':
+          description: Goal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialGoal'
+        '400':
+          description: Invalid input
+
+  /goals/{id}:
+    get:
+      summary: Get financial goal
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Financial goal found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialGoal'
+        '404':
+          description: Goal not found
+
+    patch:
+      summary: Update financial goal
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                description:
+                  type: string
+                target_amount:
+                  type: integer
+                current_amount:
+                  type: integer
+                status:
+                  type: string
+                  enum: [ACTIVE, COMPLETED, ARCHIVED, CANCELLED]
+      responses:
+        '200':
+          description: Goal updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialGoal'
+
+    delete:
+      summary: Delete financial goal (archive)
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Goal deleted (archived)
+
+  /users/{userId}/goals:
+    get:
+      summary: Get user financial goals
+      tags:
+        - Financial Goals
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of financial goals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FinancialGoal'
 
   /accounts:
     post:

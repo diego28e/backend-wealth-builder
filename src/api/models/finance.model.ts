@@ -83,6 +83,8 @@ export const CategoryGroupSchema = z.object({
   sort_order: z.number().int().default(0)
 });
 
+export const FinancialGoalStatusSchema = z.enum(['ACTIVE', 'COMPLETED', 'ARCHIVED', 'CANCELLED']);
+
 export const FinancialGoalSchema = z.object({
   id: z.string().uuid().optional(),
   user_id: z.string().uuid(),
@@ -93,10 +95,13 @@ export const FinancialGoalSchema = z.object({
   target_date: z.string().optional(),
   category_id: z.string().uuid().optional(),
   currency_code: z.string().length(3),
-  is_active: z.boolean().default(true),
+  status: FinancialGoalStatusSchema.default('ACTIVE'),
+  is_active: z.boolean().default(true), // Deprecated in favor of status, keeping for backward compatibility
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
+
+export type FinancialGoalStatus = z.infer<typeof FinancialGoalStatusSchema>;
 
 export const CurrencySchema = z.object({
   code: z.string().length(3),

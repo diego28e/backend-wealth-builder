@@ -48,8 +48,16 @@ router.get('/users/:userId/categories', authenticate, financeController.getUserC
 // Category Group Summary route
 router.get('/users/:userId/category-group-summary', authenticate, financeController.getCategoryGroupSummary);
 // Financial Goal routes
-router.post('/financial-goals', authenticate, financeController.createFinancialGoal);
-router.get('/users/:userId/financial-goals', authenticate, financeController.getUserFinancialGoals);
+import * as goalController from "../controllers/goal.controller.js";
+
+// ...
+
+// Financial Goal routes
+router.post('/goals', authenticate, goalController.createGoal);
+router.get('/users/:userId/goals', authenticate, goalController.getGoals);
+router.get('/goals/:id', authenticate, goalController.getGoal);
+router.patch('/goals/:id', authenticate, goalController.updateGoal);
+router.delete('/goals/:id', authenticate, goalController.deleteGoal);
 
 // Transaction routes
 router.post('/transactions', authenticate, financeController.createTransaction);
