@@ -16,7 +16,7 @@ export const processReceiptImage = async (
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const categoryList = userCategories
     .map(c => `- ${c.name} (ID: ${c.id})`)
@@ -49,12 +49,16 @@ Return ONLY valid JSON (no markdown, no explanation):
   ]
 }`;
 
+  // Clean the base64 string (remove data:image/...;base64, prefix if present)
+  // Gemini API expects raw base64 data
+  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
   const result = await model.generateContent([
     prompt,
     {
       inlineData: {
         mimeType: 'image/jpeg',
-        data: imageBase64
+        data: base64Data
       }
     }
   ]);
