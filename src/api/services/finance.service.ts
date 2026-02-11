@@ -1,6 +1,6 @@
 import { supabase } from '../../config/supabase.js';
-import { TransactionSchema, CategorySchema, FinancialGoalSchema, AccountSchema } from '../models/finance.model.js';
-import type { Transaction, User, Category, FinancialGoal, Currency, Account } from '../models/finance.model.js';
+import { TransactionSchema, CategorySchema, AccountSchema } from '../models/finance.model.js';
+import type { Transaction, User, Category, Currency, Account } from '../models/finance.model.js';
 
 export const getUserById = async (id: string): Promise<User | null> => {
   const { data, error } = await supabase
@@ -180,30 +180,7 @@ export const getCurrencies = async (): Promise<Currency[]> => {
   return data || [];
 };
 
-export const createFinancialGoal = async (goalData: Omit<FinancialGoal, 'id' | 'created_at' | 'updated_at'>): Promise<FinancialGoal> => {
-  const validatedData = FinancialGoalSchema.omit({ id: true, created_at: true, updated_at: true }).parse(goalData);
 
-  const { data, error } = await supabase
-    .from('financial_goals')
-    .insert(validatedData)
-    .select()
-    .single();
-
-  if (error) throw new Error(`Failed to create financial goal: ${error.message}`);
-  return data;
-};
-
-export const getUserFinancialGoals = async (userId: string): Promise<FinancialGoal[]> => {
-  const { data, error } = await supabase
-    .from('financial_goals')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw new Error(`Failed to fetch financial goals: ${error.message}`);
-  return data || [];
-};
 
 export const getTransactionWithItems = async (transactionId: string) => {
   const { data, error } = await supabase
