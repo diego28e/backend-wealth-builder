@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as financeService from '../api/services/finance.service.js';
+import * as goalService from '../api/services/goal.service.js';
 import { analyzeFinancials } from '../api/services/llm.service.js';
 import { TransactionSchema, CategorySchema, AccountSchema } from '../api/models/finance.model.js';
 import type { Account } from '../api/models/finance.model.js';
@@ -181,13 +182,13 @@ export const getFinancialAnalysis = async (req: Request, res: Response): Promise
     console.log('📈 Found', transactions.length, 'transactions');
 
     console.log('🔍 Fetching user financial goals...');
-    const goals = await financeService.getUserFinancialGoals(userId);
+    const goals = await goalService.getGoals(userId);
     console.log('🎯 Found', goals.length, 'financial goals');
 
     console.log('🤖 Calling AI analysis service...');
     const analysis = await analyzeFinancials({
       profile: user.profile,
-      goals: goals.map(g => g.name),
+      goals: goals.map((g: any) => g.name),
       transactions
     });
 
