@@ -110,10 +110,19 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
   return transaction;
 };
 
-export const getUserTransactions = async (userId: string, start_date?: string, end_date?: string): Promise<Transaction[]> => {
+export const getUserTransactions = async (
+  userId: string,
+  start_date?: string,
+  end_date?: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ data: Transaction[]; total: number }> => {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
   let query = supabase
     .from('transactions')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('user_id', userId);
 
   if (start_date) {
@@ -124,10 +133,15 @@ export const getUserTransactions = async (userId: string, start_date?: string, e
     query = query.lte('date', end_date);
   }
 
-  const { data, error } = await query.order('date', { ascending: false });
+  const { data, count, error } = await query
+    .order('date', { ascending: false })
+    .range(from, to);
 
   if (error) throw new Error(`Failed to fetch transactions: ${error.message}`);
-  return data || [];
+  return {
+    data: data || [],
+    total: count || 0
+  };
 };
 
 export const getUserTransactionsEnriched = async (userId: string) => {

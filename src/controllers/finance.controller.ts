@@ -82,13 +82,35 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
 export const getUserTransactions = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
-    const { start_date, end_date } = req.query;
+    const { start_date, end_date, page = '1', limit = '20' } = req.query;
+
     if (!userId) {
       res.status(400).json({ error: 'User ID is required' });
       return;
     }
-    const transactions = await financeService.getUserTransactions(userId, start_date as string, end_date as string);
-    res.json(transactions);
+
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+
+    const { data, total } = await financeService.getUserTransactions(
+      userId,
+      start_date as string,
+      end_date as string,
+      pageNum,
+      limitNum
+    );
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.json({
+      data,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Server error' });
   }
