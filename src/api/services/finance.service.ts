@@ -411,7 +411,7 @@ export const getUserBalance = async (userId: string): Promise<{
     .eq('user_id', userId)
     .eq('is_active', true);
 
-  if (accountError) throw new Error(`Failed to fetch user accounts: ${accountError.message}`);
+  if (accountError) throw new Error(`Failed to fetch user accounts: ${accountError?.message}`);
 
   // Calculate Net Worth (All accounts)
   const netWorth = (accounts || []).reduce((sum, acc) => sum + (acc.current_balance || 0), 0);

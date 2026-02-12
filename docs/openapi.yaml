@@ -1168,48 +1168,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /financial-goals:
-    post:
-      summary: Create financial goal
-      tags:
-        - Financial Goals
-      security:
-        - cookieAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - user_id
-                - name
-                - currency_code
-              properties:
-                user_id:
-                  type: string
-                  format: uuid
-                name:
-                  type: string
-                description:
-                  type: string
-                target_amount:
-                  type: integer
-                current_amount:
-                  type: integer
-                target_date:
-                  type: string
-                  format: date
-                currency_code:
-                  type: string
-      responses:
-        '201':
-          description: Goal created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FinancialGoal'
-
   /users/{userId}/balance:
     get:
       summary: Get user total balance
@@ -1265,7 +1223,7 @@ paths:
                 - amount
                 - currency_code
               properties:
-                amount:
+                starting_balance:
                   type: number
                 currency_code:
                   type: string
@@ -1276,30 +1234,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Account'
-
-  /users/{userId}/financial-goals:
-    get:
-      summary: Get user financial goals
-      tags:
-        - Financial Goals
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: List of financial goals
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FinancialGoal'
 
   /users/{userId}/analysis:
     get:
