@@ -22,28 +22,33 @@ export const processReceiptImage = async (
     .map(c => `- ${c.name} (ID: ${c.id})`)
     .join('\n');
 
+  const currentYear = new Date().getFullYear();
   const prompt = `Analyze this receipt/bill image and extract structured data.
 
 Available categories for item classification:
 ${categoryList}
 
 IMPORTANT: 
-- Date MUST be in ISO 8601 format with timezone: "2024-01-15T14:30:00Z" or "2024-01-15T14:30:00-05:00"
-- If receipt shows only date without time, use "T12:00:00Z" as default time
-- Amounts must be in smallest currency unit (cents for USD/COP, no decimals)
+- Date MUST be in ISO 8601 format: "YYYY-MM-DD". 
+- If the receipt shows a date without a year (e.g., "Feb 11"), assume the current year is ${currentYear}.
+- If the date is ambiguous, prefer the current year ${currentYear}.
+- Amounts must be in CENTS (smallest currency unit). 
+  - Example: $450.00 becomes 45000.
+  - Example: 50,000 COP becomes 5000000. 
+  - If the receipt says "450", and it's COP, it's likely 45000 cents. Use your best judgment for the currency.
 
 Return ONLY valid JSON (no markdown, no explanation):
 {
   "merchant_name": "Store name",
-  "date": "2024-01-15T12:00:00Z",
+  "date": "${currentYear}-01-15T12:00:00Z",
   "currency_code": "COP",
-  "total_amount": 50000,
+  "total_amount": 5000000, 
   "items": [
     {
       "item_name": "Product name",
       "quantity": 2,
-      "unit_price": 15000,
-      "total_amount": 30000,
+      "unit_price": 1500000,
+      "total_amount": 3000000,
       "suggested_category_id": "uuid-from-list-or-null"
     }
   ]
@@ -74,11 +79,33 @@ Return ONLY valid JSON (no markdown, no explanation):
   const parsed = JSON.parse(jsonMatch[0]);
   console.log('📋 Parsed date:', parsed.date);
 
-  // Normalize date to ISO 8601 if needed
-  if (parsed.date && !parsed.date.includes('T')) {
-    parsed.date = `${parsed.date}T12:00:00Z`;
+  // Normalize date to ISO 8601 and fix year if needed
+  if (parsed.date) {
+    let dateObj = new Date(parsed.date);
+    const now = new Date();
+
+    // If the date is invalid, default to today
+    if (isNaN(dateObj.getTime())) {
+      dateObj = now;
+    }
+
+    // If the year is older than 2 years (likely a hallucination or old receipt), assume current year
+    // or if the year is in the future
+    if (dateObj.getFullYear() < now.getFullYear() - 1 || dateObj.getFullYear() > now.getFullYear()) {
+      console.log(`⚠️ Date year ${dateObj.getFullYear()} seems off. Adjusting to ${now.getFullYear()}`);
+      dateObj.setFullYear(now.getFullYear());
+    }
+
+    parsed.date = dateObj.toISOString();
     console.log('🔧 Normalized date to:', parsed.date);
+  } else {
+    parsed.date = new Date().toISOString();
   }
+
+  // Sanity check for amounts (Super basic heurisitc)
+  // If amount is small (< 1000) and currency is COP, implies it wasn't converted to cents or it's just wrong. 
+  // But strictly following the prompt instructions is better. 
+  // The prompt now explicitly asks for cents.
 
   return ReceiptDataSchema.parse(parsed);
 };
