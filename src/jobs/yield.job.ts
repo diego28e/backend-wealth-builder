@@ -45,7 +45,7 @@ export const startYieldJob = () => {
                             currency_code: account.currency_code,
                             description: 'Daily Yield',
                             notes: `Automated interest deposit. Rate: ${account.interest_rate}% E.A.`,
-                            merchant_name: 'Bank Interest'
+                            merchant_name: account.name
                         });
 
                         console.log(`[Cron] Added yield of ${yieldAmount} to account ${account.name} (${account.id})`);
