@@ -110,6 +110,39 @@ components:
         updated_at:
           type: string
           format: date-time
+        transaction_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionItem'
+
+    TransactionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transaction_id:
+          type: string
+          format: uuid
+        item_name:
+          type: string
+        quantity:
+          type: number
+        unit_price:
+          type: integer
+          description: Price per unit in smallest currency unit
+        total_amount:
+          type: integer
+          description: Total amount in smallest currency unit
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
 
     Category:
       type: object
@@ -1039,6 +1072,70 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Category'
+
+  /users/{userId}/transactions:
+    get:
+      summary: Get user transactions
+      tags:
+        - Defaults
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of transactions with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /users/{userId}/category-group-summary:
     get:
