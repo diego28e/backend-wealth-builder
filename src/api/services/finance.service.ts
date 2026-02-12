@@ -110,19 +110,21 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
   return transaction;
 };
 
+import type { TransactionWithItems } from '../models/finance.model.js';
+
 export const getUserTransactions = async (
   userId: string,
   start_date?: string,
   end_date?: string,
   page: number = 1,
   limit: number = 20
-): Promise<{ data: Transaction[]; total: number }> => {
+): Promise<{ data: TransactionWithItems[]; total: number }> => {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
   let query = supabase
     .from('transactions')
-    .select('*', { count: 'exact' })
+    .select('*, transaction_items(*)', { count: 'exact' })
     .eq('user_id', userId);
 
   if (start_date) {
@@ -138,11 +140,14 @@ export const getUserTransactions = async (
     .range(from, to);
 
   if (error) throw new Error(`Failed to fetch transactions: ${error.message}`);
+  // Supabase returns nested data, we need to cast it or ensure it matches TransactionWithItems
+  // The join returns transaction_items as an array on the transaction object.
   return {
-    data: data || [],
+    data: (data as any[]) || [],
     total: count || 0
   };
 };
+
 
 export const getUserTransactionsEnriched = async (userId: string) => {
   const { data, error } = await supabase

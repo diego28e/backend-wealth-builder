@@ -142,5 +142,5 @@ export interface UserFinancials {
 }
 
 export interface TransactionWithItems extends Transaction {
-  transacion_items: TransactionItem[];
+  transaction_items: TransactionItem[];
 }
