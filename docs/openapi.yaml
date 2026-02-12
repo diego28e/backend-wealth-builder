@@ -85,12 +85,17 @@ components:
         date:
           type: string
           format: date-time
+        transfer_destination_account_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: For Transfer type, the ID of the destination account
         amount:
           type: integer
           description: Amount in smallest currency unit (cents)
         type:
           type: string
-          enum: [Income, Expense]
+          enum: [Income, Expense, Transfer]
         description:
           type: string
         notes:
@@ -237,6 +242,10 @@ components:
         interest_rate:
           type: number
           description: Annual Interest Rate (e.g. 8.75 for 8.75% E.A.)
+        is_liquid:
+          type: boolean
+          default: true
+          description: Whether the account balance is considered liquid (spendable)
         configurations:
           type: array
           items:

@@ -7,7 +7,7 @@ export const TransactionSchema = z.object({
   goal_id: z.string().uuid().optional(),
   date: z.string().datetime(),
   amount: z.number().int(),
-  type: z.enum(['Income', 'Expense']),
+  type: z.enum(['Income', 'Expense', 'Transfer']),
   description: z.string().min(1),
   notes: z.string().optional(),
   currency_code: z.string().length(3),
@@ -45,6 +45,7 @@ export const AccountSchema = z.object({
   color: z.string().optional(),
   is_tax_exempt: z.boolean().default(false),
   interest_rate: z.number().default(0),
+  is_liquid: z.boolean().default(true),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional()
 });
