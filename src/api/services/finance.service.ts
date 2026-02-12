@@ -51,23 +51,28 @@ export const createTransaction = async (transactionData: Omit<Transaction, 'id' 
 
   // 2. Handle Transfer Logic - Create destination transaction if generic Transfer
   if (validatedData.type === 'Transfer' && validatedData.transfer_destination_account_id) {
-    // We already created the "Source" transaction (which is an Expense-like deduction essentially).
-    // Now create the "Destination" transaction (Income-like addition).
-    // Note: 'Transfer' type is used for both. 'amount' in DB is always positive, but logic determines sign.
-    // For specific UI display, we might want to store them with a special flag or just rely on 'type'.
+    // We already created the "Source" transaction (Transfer Out).
+    // Now create the "Destination" transaction (Transfer In).
+
+    // FETCH Source Account Name for better description
+    const { data: sourceAccount } = await supabase
+      .from('accounts')
+      .select('name')
+      .eq('id', validatedData.account_id)
+      .single();
+
+    const sourceName = sourceAccount?.name || 'Account';
 
     const destinationTransaction = {
       ...validatedData,
       account_id: validatedData.transfer_destination_account_id,
       transfer_destination_account_id: null, // Avoid infinite loop
-      description: `Transfer from ${validatedData.description || 'Account'}`,
+      type: 'Income', // MUST be Income to add to balance
+      description: `Transfer from ${sourceName}`,
       // In a double-entry system we might link them. For now, they are independent but related.
-      // Ideally we should have a 'related_transaction_id' column, but we'll keep it simple.
     };
 
-    // We need to NOT apply fees to the destination part usually, or maybe we do?
-    // Let's assume fees only apply to the source (sender pays).
-
+    // We need to NOT apply fees to the destination part usually
     await supabase.from('transactions').insert(destinationTransaction);
   }
 
