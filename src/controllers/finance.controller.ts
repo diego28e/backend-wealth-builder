@@ -27,9 +27,19 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
   try {
     let { date, currency_code, account_id, user_id, ...rest } = req.body;
 
-    // 1. Normalize Date (Handle YYYY-MM-DD by converting to ISO)
+    // 1. Normalize Date (Handle YYYY-MM-DD)
     if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      date = new Date(date).toISOString();
+      // Check if the date is "Today"
+      const today = new Date().toISOString().split('T')[0];
+      if (date === today) {
+        // If it's today, use the current timestamp (Set Now behavior)
+        date = new Date().toISOString();
+      } else {
+        // If it's another day, set to Noon UTC to be safe across timezones
+        // This avoids the "previous day" issue when users are in UTC-5 (Western Hemisphere)
+        // 00:00 UTC = 7:00 PM Prev Day (UTC-5). 12:00 UTC = 7:00 AM Same Day.
+        date = `${date}T12:00:00.000Z`;
+      }
     }
 
     // 2. Resolve Account and Currency
