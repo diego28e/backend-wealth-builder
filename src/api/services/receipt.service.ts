@@ -36,6 +36,7 @@ IMPORTANT:
   - Example: $450.00 becomes 45000.
   - Example: 50,000 COP becomes 5000000. 
   - If the receipt says "450", and it's COP, it's likely 45000 cents. Use your best judgment for the currency.
+  - THIS APPLIES TO BOTH 'total_amount' AND 'items' ('unit_price', 'total_amount'). All monetary values must be in CENTS.
 
 Return ONLY valid JSON (no markdown, no explanation):
 {
@@ -47,8 +48,8 @@ Return ONLY valid JSON (no markdown, no explanation):
     {
       "item_name": "Product name",
       "quantity": 2,
-      "unit_price": 1500000,
-      "total_amount": 3000000,
+      "unit_price": 1500000, 
+      "total_amount": 3000000, 
       "suggested_category_id": "uuid-from-list-or-null"
     }
   ]
@@ -106,6 +107,21 @@ Return ONLY valid JSON (no markdown, no explanation):
   // If amount is small (< 1000) and currency is COP, implies it wasn't converted to cents or it's just wrong. 
   // But strictly following the prompt instructions is better. 
   // The prompt now explicitly asks for cents.
+
+  // Post-processing: Items amount sanity check
+  if (parsed.items && Array.isArray(parsed.items)) {
+    parsed.items = parsed.items.map((item: any) => {
+      // Heuristic: If currency is COP and amount is small (< 1000), it's likely not in cents.
+      // Example: 225 -> 22500 (if it was meant to be $225.00 but parser stripped decimals)
+      // However, relying on the prompt is safer. 
+      // But let's enforce integer types.
+      return {
+        ...item,
+        unit_price: Math.round(item.unit_price),
+        total_amount: Math.round(item.total_amount)
+      };
+    });
+  }
 
   return ReceiptDataSchema.parse(parsed);
 };
