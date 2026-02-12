@@ -400,29 +400,33 @@ export const updateAccount = async (id: string, updates: any): Promise<Account> 
 };
 
 export const getUserBalance = async (userId: string): Promise<{
-  accounts_total_balance: number;
+  net_worth: number;
+  liquid_balance: number;
   currency_code: string;
-  current_calculated_balance: number;
 }> => {
   // Get all active accounts
   const { data: accounts, error: accountError } = await supabase
     .from('accounts')
-    .select('current_balance, currency_code')
+    .select('current_balance, currency_code, is_liquid')
     .eq('user_id', userId)
     .eq('is_active', true);
 
   if (accountError) throw new Error(`Failed to fetch user accounts: ${accountError.message}`);
 
-  // Since DB Trigger keeps current_balance updated, we just sum them up.
-  // Note: This returns TOTAL Net Worth (Liquid + Illiquid). 
-  // Frontend can filter by is_liquid using the /accounts endpoint for specific views.
-  const accountsTotal = (accounts || []).reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
+  // Calculate Net Worth (All accounts)
+  const netWorth = (accounts || []).reduce((sum, acc) => sum + (acc.current_balance || 0), 0);
+
+  // Calculate Liquid Balance (Only is_liquid = true)
+  const liquidBalance = (accounts || []).reduce((sum, acc) => {
+    return acc.is_liquid ? sum + (acc.current_balance || 0) : sum;
+  }, 0);
+
   const currencyCode = accounts?.[0]?.currency_code || 'COP';
 
   return {
-    accounts_total_balance: accountsTotal,
-    currency_code: currencyCode,
-    current_calculated_balance: accountsTotal
+    net_worth: netWorth,
+    liquid_balance: liquidBalance,
+    currency_code: currencyCode
   };
 };
 

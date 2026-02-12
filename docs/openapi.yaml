@@ -1226,18 +1226,20 @@ paths:
             format: uuid
       responses:
         '200':
-          description: User balance calculated from accounts
+          description: User financial balance (Net Worth vs Liquid)
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  accounts_total_balance:
+                  net_worth:
                     type: number
+                    description: Total of all active accounts
+                  liquid_balance:
+                    type: number
+                    description: Total of accounts marked as is_liquid=true
                   currency_code:
                     type: string
-                  current_calculated_balance:
-                    type: number
 
   /users/{userId}/starting-balance:
     put:
