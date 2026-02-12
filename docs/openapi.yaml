@@ -893,15 +893,49 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
       responses:
         '200':
-          description: List of transactions
+          description: List of transactions with pagination
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Transaction'
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
         '401':
           description: Unauthorized
           content:
@@ -1082,69 +1116,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/Category'
 
-  /users/{userId}/transactions:
-    get:
-      summary: Get user transactions
-      tags:
-        - Defaults
-      security:
-        - cookieAuth: []
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: start_date
-          in: query
-          schema:
-            type: string
-            format: date
-        - name: end_date
-          in: query
-          schema:
-            type: string
-            format: date
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: List of transactions with pagination
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Transaction'
-                  meta:
-                    type: object
-                    properties:
-                      total:
-                        type: integer
-                      page:
-                        type: integer
-                      limit:
-                        type: integer
-                      totalPages:
-                        type: integer
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+
+
 
   /users/{userId}/category-group-summary:
     get:
@@ -1236,6 +1209,71 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FinancialGoal'
+
+  /users/{userId}/balance:
+    get:
+      summary: Get user total balance
+      tags:
+        - Users
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User balance calculated from accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts_total_balance:
+                    type: number
+                  currency_code:
+                    type: string
+                  current_calculated_balance:
+                    type: number
+
+  /users/{userId}/starting-balance:
+    put:
+      summary: Update user starting balance (Main Account)
+      tags:
+        - Users
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency_code
+              properties:
+                amount:
+                  type: number
+                currency_code:
+                  type: string
+      responses:
+        '200':
+          description: Starting balance updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
 
   /users/{userId}/financial-goals:
     get:

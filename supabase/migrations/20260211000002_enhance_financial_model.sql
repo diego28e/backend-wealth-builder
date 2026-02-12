@@ -16,7 +16,7 @@ WHERE "type" IN ('Investment', 'Loan', 'Other');
 
 -- 3. Create Financial Insights Table
 CREATE TABLE IF NOT EXISTS "public"."financial_insights" (
-    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+    "id" uuid NOT NULL default extensions.uuid_generate_v4(),
     "user_id" uuid NOT NULL,
     "month" integer NOT NULL,
     "year" integer NOT NULL,
