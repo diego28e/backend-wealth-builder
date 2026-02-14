@@ -50,7 +50,7 @@ Return ONLY valid JSON (no markdown, no explanation):
       "quantity": 2,
       "unit_price": 1500000, 
       "total_amount": 3000000, 
-      "suggested_category_id": "uuid-from-list-or-null"
+      "suggested_category_id": "uuid-or-null"
     }
   ]
 }`;
@@ -103,22 +103,33 @@ Return ONLY valid JSON (no markdown, no explanation):
     parsed.date = new Date().toISOString();
   }
 
-  // Sanity check for amounts (Super basic heurisitc)
-  // If amount is small (< 1000) and currency is COP, implies it wasn't converted to cents or it's just wrong. 
-  // But strictly following the prompt instructions is better. 
-  // The prompt now explicitly asks for cents.
+  // UUID Validation Regex
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  // Post-processing: Items amount sanity check
+  // Post-processing: Items amount sanity check & UUID sanitization
   if (parsed.items && Array.isArray(parsed.items)) {
     parsed.items = parsed.items.map((item: any) => {
-      // Heuristic: If currency is COP and amount is small (< 1000), it's likely not in cents.
-      // Example: 225 -> 22500 (if it was meant to be $225.00 but parser stripped decimals)
-      // However, relying on the prompt is safer. 
-      // But let's enforce integer types.
+
+      // Sanitize suggested_category_id
+      let categoryId = item.suggested_category_id;
+      if (typeof categoryId === 'string') {
+        // If it's "null" string or invalid UUID, set to undefined/null
+        if (categoryId === 'null' || !uuidRegex.test(categoryId)) {
+          categoryId = undefined;
+        }
+      } else {
+        // If it's null or not a string, keep as is (zod handles null/undefined usually if optional)
+        // Check schema: z.string().uuid().optional() -> implies it must be string or undefined. 
+        // If it comes as actual null, Zod might complain if not .nullable(). 
+        // Our schema is .optional(), so undefined is safer.
+        if (categoryId === null) categoryId = undefined;
+      }
+
       return {
         ...item,
         unit_price: Math.round(item.unit_price),
-        total_amount: Math.round(item.total_amount)
+        total_amount: Math.round(item.total_amount),
+        suggested_category_id: categoryId
       };
     });
   }
@@ -170,7 +181,7 @@ export const createTransactionFromReceipt = async (
       quantity: item.quantity,
       unit_price: item.unit_price,
       total_amount: item.total_amount,
-      category_id: item.suggested_category_id || null,
+      category_id: item.suggested_category_id || transaction.category_id,
       sort_order: index
     }));
 
