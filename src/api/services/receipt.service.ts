@@ -125,13 +125,41 @@ Return ONLY valid JSON (no markdown, no explanation):
         if (categoryId === null) categoryId = undefined;
       }
 
+      // Sanitize Quantity (must be positive)
+      const quantity = (item.quantity && item.quantity > 0) ? item.quantity : 1;
+
+      // Sanitize Unit Price & Total (ensure numbers)
+      let totalAmount = Math.round(item.total_amount || 0);
+      let unitPrice = Math.round(item.unit_price || 0);
+
+      // If one price is missing, calculate from the other
+      if (totalAmount === 0 && unitPrice > 0) totalAmount = unitPrice * quantity;
+      if (unitPrice === 0 && totalAmount > 0) unitPrice = Math.round(totalAmount / quantity);
+
       return {
         ...item,
-        unit_price: Math.round(item.unit_price),
-        total_amount: Math.round(item.total_amount),
+        quantity: quantity,
+        unit_price: unitPrice,
+        total_amount: totalAmount,
         suggested_category_id: categoryId
       };
     });
+  }
+
+  // Final Validation/Sanitization before Schema Parse
+  if (!parsed.merchant_name || typeof parsed.merchant_name !== 'string') {
+    parsed.merchant_name = 'Unknown Merchant';
+  }
+
+  if (!parsed.total_amount || typeof parsed.total_amount !== 'number') {
+    // Try to sum items if total is missing
+    if (parsed.items && Array.isArray(parsed.items)) {
+      parsed.total_amount = parsed.items.reduce((sum: number, item: any) => sum + (item.total_amount || 0), 0);
+    } else {
+      parsed.total_amount = 0;
+    }
+  } else {
+    parsed.total_amount = Math.round(parsed.total_amount);
   }
 
   return ReceiptDataSchema.parse(parsed);
