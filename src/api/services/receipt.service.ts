@@ -19,7 +19,7 @@ export const processReceiptImage = async (
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const categoryList = userCategories
-    .map(c => `- ${c.name} (ID: ${c.id})`)
+    .map(c => `- ${c.name}: ${c.description || 'No description'} (ID: ${c.id})`)
     .join('\n');
 
   const currentYear = new Date().getFullYear();
@@ -143,15 +143,48 @@ export const createTransactionFromReceipt = async (
   receiptImageUrl: string,
   accountId: string
 ): Promise<Transaction> => {
-  // Use first item's category or fallback to first available category
-  const { data: fallbackCategory } = await supabase
+  // Use first item's category or fallback to a smart default
+  // Strategy: 
+  // 1. Try to find "Shopping", "General", "Miscellaneous"
+  // 2. Fallback to first available category (which we know is Expense because we filtered Incomes out in controller)
+  let fallbackCategoryId: string | undefined;
+
+  const { data: shoppingCategory } = await supabase
     .from('categories')
     .select('id')
     .or(`user_id.eq.${userId},user_id.is.null`)
+    .ilike('name', '%Shopping%')
     .limit(1)
     .single();
 
-  const categoryId = receiptData.items[0]?.suggested_category_id || fallbackCategory?.id;
+  if (shoppingCategory) {
+    fallbackCategoryId = shoppingCategory.id;
+  } else {
+    // Try General or Misc
+    const { data: generalCategory } = await supabase
+      .from('categories')
+      .select('id')
+      .or(`user_id.eq.${userId},user_id.is.null`)
+      .or('name.ilike.%General%,name.ilike.%Misc%')
+      .limit(1)
+      .single();
+
+    if (generalCategory) {
+      fallbackCategoryId = generalCategory.id;
+    } else {
+      // Last resort: First available expense category
+      const { data: anyCategory } = await supabase
+        .from('categories')
+        .select('id')
+        .or(`user_id.eq.${userId},user_id.is.null`)
+        .limit(1)
+        .single();
+
+      fallbackCategoryId = anyCategory?.id;
+    }
+  }
+
+  const categoryId = receiptData.items[0]?.suggested_category_id || fallbackCategoryId;
   if (!categoryId) {
     throw new Error('No category available for transaction');
   }

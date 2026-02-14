@@ -37,6 +37,18 @@ export const getUserCategories = async (userId: string): Promise<Category[]> => 
   return data || [];
 };
 
+export const getUserExpenseCategories = async (userId: string): Promise<Category[]> => {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*, category_groups!inner(name)')
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .neq('category_groups.name', 'Income')
+    .order('name');
+
+  if (error) throw new Error(`Failed to fetch expense categories: ${error.message}`);
+  return data || [];
+};
+
 export const createTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>): Promise<Transaction> => {
   const validatedData = TransactionSchema.omit({ id: true, created_at: true, updated_at: true }).parse(transactionData);
 

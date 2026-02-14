@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { processReceiptImage, createTransactionFromReceipt } from '../api/services/receipt.service.js';
-import { getUserCategories } from '../api/services/finance.service.js';
+import { getUserExpenseCategories } from '../api/services/finance.service.js';
 import { supabase } from '../config/supabase.js';
 
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
@@ -25,7 +25,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     console.log('📸 Processing receipt for user:', user_id, 'account:', account_id);
 
     // Get user categories
-    const categories = await getUserCategories(user_id);
+    const categories = await getUserExpenseCategories(user_id);
     console.log('📂 Found', categories.length, 'categories');
 
     // Process receipt with AI
